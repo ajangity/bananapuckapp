@@ -1,39 +1,69 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-    <title>BananaPuck Caregiver App</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <title>BananaPuck Caregiver</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="style.css">
 
-    <!-- Leaflet Map Library -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
+  <header id="topbar">
+    <div class="left">
+      <h1>🍌 BananaPuck</h1>
+      <div id="badge">Caregiver Console</div>
+    </div>
 
-    <header>
-        <h1>🍌 BananaPuck Caregiver Dashboard</h1>
-    </header>
+    <div class="right">
+      <button id="theme-toggle">🌙</button>
+      <button id="login-btn">Log in</button>
+      <button id="panic-btn" title="Call emergency">📞 Panic</button>
+    </div>
+  </header>
 
-    <section id="location-section">
-        <h2>📍 Live Location</h2>
-
-        <div id="map"></div>
-
-        <div id="coords">
-            <p><strong>Latitude:</strong> <span id="lat">--</span></p>
-            <p><strong>Longitude:</strong> <span id="lon">--</span></p>
-            <p><strong>Accuracy:</strong> <span id="acc">--</span> meters</p>
-        </div>
+  <main>
+    <section class="card" id="map-card">
+      <h2>Live Tracker</h2>
+      <div id="map"></div>
+      <div id="coords">
+        <div><strong>Latitude:</strong> <span id="lat">—</span></div>
+        <div><strong>Longitude:</strong> <span id="lon">—</span></div>
+        <div><strong>Accuracy:</strong> <span id="acc">—</span> m</div>
+        <div><strong>Last:</strong> <span id="last">—</span></div>
+      </div>
     </section>
 
-    <section id="walkie-section">
-        <h2>🎤 Walkie Talkie</h2>
-
+    <section class="card" id="walkie-card">
+      <h2>Walkie — Press & Hold to Talk</h2>
+      <div id="walkie-controls">
         <button id="record-btn">Hold to Talk</button>
+        <div id="record-status">Idle</div>
+      </div>
 
-        <ul id="walkie-messages"></ul>
+      <h3>Messages</h3>
+      <ul id="messages"></ul>
     </section>
+  </main>
 
-    <script src="app.js"></script>
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Caregiver Login</h3>
+      <input id="username" placeholder="username">
+      <input id="password" type="password" placeholder="password">
+      <div class="modal-buttons">
+        <button id="do-login">Login</button>
+        <button id="close-login">Cancel</button>
+      </div>
+      <div id="login-error" class="error"></div>
+    </div>
+  </div>
+
+  <audio id="alarm-audio" src=""></audio>
+
+  <script src="app.js"></script>
 </body>
 </html>
