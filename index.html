@@ -38,6 +38,12 @@
             padding: 16px;
         }
 
+        .alerts-label {
+            margin: 8px 4px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
         .alert-box {
             border-radius: 10px;
             padding: 12px 16px;
@@ -194,7 +200,8 @@
 
     <div class="layout">
 
-        <!-- ALERT BOX -->
+        <!-- ALERTS SECTION -->
+        <div class="alerts-label">Alerts</div>
         <div id="alertBox" class="alert-box alert-ok">
             <span id="alertText">All good.</span>
             <button id="callUserBtn" class="call-btn">Call User (Vibrate)</button>
@@ -218,12 +225,6 @@
             <div class="sensor-box vital-card" data-metric="temp" data-label="Temperature (°C)">
                 <h3>Temperature</h3>
                 <p id="temperature">-- °C</p>
-                <p class="small">Click for history</p>
-            </div>
-
-            <div class="sensor-box vital-card" data-metric="water_submerged" data-label="Water Submerged">
-                <h3>Water</h3>
-                <p id="waterSub">--</p>
                 <p class="small">Click for history</p>
             </div>
         </div>
@@ -270,6 +271,13 @@
                 <p id="gpsLat">Lat: --</p>
                 <p id="gpsLon">Lon: --</p>
                 <p id="gpsAcc">Accuracy: -- m</p>
+                <p class="small">Click for history</p>
+            </div>
+
+            <!-- 🔁 Water moved here -->
+            <div class="sensor-box vital-card" data-metric="water_submerged" data-label="Water Submerged">
+                <h3>Water</h3>
+                <p id="waterSub">--</p>
                 <p class="small">Click for history</p>
             </div>
 
