@@ -38,21 +38,41 @@
             padding: 16px;
         }
 
-        .alerts-label {
+        .alerts-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin: 8px 4px;
+        }
+
+        .alerts-label {
             font-size: 16px;
             font-weight: bold;
         }
 
         .alert-box {
             border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 16px;
-            font-size: 18px;
-            font-weight: bold;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            font-size: 15px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+        }
+
+        .alert-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .alert-title {
+            font-weight: bold;
+        }
+
+        .alert-times {
+            font-size: 13px;
+            color: #555;
         }
 
         .alert-ok {
@@ -80,6 +100,15 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
+        }
+
+        .dismiss-btn {
+            border: none;
+            background: transparent;
+            font-size: 18px;
+            cursor: pointer;
+            line-height: 1;
+            margin-left: 8px;
         }
 
         .grid-section-title {
@@ -116,6 +145,22 @@
         .small {
             font-size: 13px;
             color: #666;
+        }
+
+        /* Card state colors */
+        .card-ok {
+            border-color: #c8e6c9;
+            background: #f1fff2;
+        }
+
+        .card-warning {
+            border-color: #ffecb3;
+            background: #fff8e1;
+        }
+
+        .card-critical {
+            border-color: #ef9a9a;
+            background: #ffebee;
         }
 
         .audio-section {
@@ -201,11 +246,11 @@
     <div class="layout">
 
         <!-- ALERTS SECTION -->
-        <div class="alerts-label">Alerts</div>
-        <div id="alertBox" class="alert-box alert-ok">
-            <span id="alertText">All good.</span>
+        <div class="alerts-header-row">
+            <div class="alerts-label">Alerts</div>
             <button id="callUserBtn" class="call-btn">Call User (Vibrate)</button>
         </div>
+        <div id="alertsContainer"></div>
 
         <!-- VITALS -->
         <div class="grid-section-title">Vitals</div>
@@ -274,7 +319,6 @@
                 <p class="small">Click for history</p>
             </div>
 
-            <!-- 🔁 Water moved here -->
             <div class="sensor-box vital-card" data-metric="water_submerged" data-label="Water Submerged">
                 <h3>Water</h3>
                 <p id="waterSub">--</p>

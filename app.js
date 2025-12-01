@@ -21,10 +21,12 @@ window.addEventListener("load", () => {
 
     // Start polling
     setInterval(fetchData, 1000);
-    setInterval(fetchHistory, 10000);   // refresh history every 10s
-    setInterval(fetchAudioList, 10000); // refresh audio list every 10s
+    setInterval(fetchHistory, 10000);
+    setInterval(fetchAudioList, 10000);
+    setInterval(fetchAlerts, 2000);
 
     setupInteractions();
+    fetchAlerts();  // initial
 });
 
 // ---------- BASIC HELPERS ----------
@@ -42,6 +44,15 @@ function roundOrDash(val, decimals = 2) {
 function formatTime(ts) {
     const d = new Date(ts);
     return d.toLocaleString();
+}
+
+function setCardState(metric, state) {
+    const card = document.querySelector(`.vital-card[data-metric="${metric}"]`);
+    if (!card) return;
+    card.classList.remove("card-ok", "card-warning", "card-critical");
+    if (state === "ok") card.classList.add("card-ok");
+    if (state === "warning") card.classList.add("card-warning");
+    if (state === "critical") card.classList.add("card-critical");
 }
 
 // ---------- FETCH LATEST DATA ----------
@@ -92,7 +103,6 @@ async function fetchData() {
                 setText("gpsAcc", `Accuracy: ${data.gps.accuracy} m`);
             }
 
-            // Update map
             if (map && marker && data.gps.lat != null && data.gps.lon != null) {
                 const latlng = [data.gps.lat, data.gps.lon];
                 marker.setLatLng(latlng);
@@ -108,20 +118,43 @@ async function fetchData() {
             setText("lastUpdate", new Date(data.timestamp).toLocaleTimeString());
         }
 
-        // Alert box
-        const alertBox = document.getElementById("alertBox");
-        const alertText = document.getElementById("alertText");
-        if (alertBox && alertText) {
-            alertText.textContent = data.alert_message || "All good.";
-            alertBox.classList.remove("alert-ok", "alert-warning", "alert-critical");
-            if (data.alert_level === "CRITICAL") {
-                alertBox.classList.add("alert-critical");
-            } else if (data.alert_level === "WARNING") {
-                alertBox.classList.add("alert-warning");
-            } else {
-                alertBox.classList.add("alert-ok");
-            }
+        // ---------- CARD COLOR LOGIC ----------
+        // HR: <40 or >140
+        if (data.hr == null) {
+            setCardState("hr", "ok");
+        } else if (data.hr < 40 || data.hr > 140) {
+            setCardState("hr", "critical");
+        } else {
+            setCardState("hr", "ok");
         }
+
+        // Respiration: <10 or >20
+        if (data.breathing == null) {
+            setCardState("breathing", "ok");
+        } else if (data.breathing < 10 || data.breathing > 20) {
+            setCardState("breathing", "warning");
+        } else {
+            setCardState("breathing", "ok");
+        }
+
+        // Temperature: fever if > 38°C
+        if (data.temp == null) {
+            setCardState("temp", "ok");
+        } else if (data.temp > 38.0) {
+            setCardState("temp", "warning");
+        } else {
+            setCardState("temp", "ok");
+        }
+
+        // Water: submerged → critical
+        if (data.water_submerged) {
+            setCardState("water_submerged", "critical");
+        } else {
+            setCardState("water_submerged", "ok");
+        }
+
+        // LiDAR: neutral
+        setCardState("distance_m", "ok");
 
     } catch (err) {
         console.error("Error fetching data:", err);
@@ -135,6 +168,87 @@ async function fetchHistory() {
         fullHistory = await res.json();
     } catch (err) {
         console.error("Error fetching history:", err);
+    }
+}
+
+// ---------- FETCH ALERTS ----------
+async function fetchAlerts() {
+    try {
+        const res = await fetch(`${SERVER}/alerts`);
+        const alerts = await res.json();
+
+        const container = document.getElementById("alertsContainer");
+        if (!container) return;
+
+        container.innerHTML = "";
+
+        if (!alerts || alerts.length === 0) {
+            const box = document.createElement("div");
+            box.className = "alert-box alert-ok";
+            box.textContent = "No active alerts.";
+            container.appendChild(box);
+            return;
+        }
+
+        alerts.forEach(alert => {
+            const box = document.createElement("div");
+            let cls = "alert-warning";
+            if (alert.level === "CRITICAL") cls = "alert-critical";
+
+            box.className = `alert-box ${cls}`;
+
+            const left = document.createElement("div");
+            left.className = "alert-left";
+
+            const title = document.createElement("div");
+            title.className = "alert-title";
+            title.textContent = alert.message;
+
+            const count = alert.timestamps ? alert.timestamps.length : 0;
+            const countLine = document.createElement("div");
+            countLine.className = "alert-times";
+            countLine.textContent = count > 1
+                ? `Occurred ${count} times.`
+                : `Occurred 1 time.`;
+
+            const timesLine = document.createElement("div");
+            timesLine.className = "alert-times";
+            if (alert.timestamps && alert.timestamps.length > 0) {
+                const timeStrings = alert.timestamps.map(ts => new Date(ts).toLocaleTimeString());
+                timesLine.textContent = "Times: " + timeStrings.join(", ");
+            } else {
+                timesLine.textContent = "Times: (unknown)";
+            }
+
+            left.appendChild(title);
+            left.appendChild(countLine);
+            left.appendChild(timesLine);
+
+            const dismissBtn = document.createElement("button");
+            dismissBtn.className = "dismiss-btn";
+            dismissBtn.textContent = "✕";
+            dismissBtn.title = "Dismiss alert";
+            dismissBtn.addEventListener("click", () => dismissAlert(alert.id));
+
+            box.appendChild(left);
+            box.appendChild(dismissBtn);
+            container.appendChild(box);
+        });
+    } catch (err) {
+        console.error("Error fetching alerts:", err);
+    }
+}
+
+async function dismissAlert(id) {
+    try {
+        await fetch(`${SERVER}/dismiss_alert`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id })
+        });
+        fetchAlerts();
+    } catch (err) {
+        console.error("Error dismissing alert:", err);
     }
 }
 
@@ -204,7 +318,7 @@ function setupInteractions() {
     const windowSelect = document.getElementById("historyWindow");
     if (windowSelect) {
         windowSelect.addEventListener("change", () => {
-            renderHistoryModal();  // re-render when window changes
+            renderHistoryModal();
         });
     }
 }
@@ -255,7 +369,6 @@ function renderHistoryModal() {
     const hours = parseInt(windowSelect.value, 10) || 24;
     const cutoff = Date.now() - hours * 3600 * 1000;
 
-    // Filter history by time window
     const subset = fullHistory.filter(entry => entry.timestamp >= cutoff);
 
     const labels = [];
@@ -280,7 +393,6 @@ function renderHistoryModal() {
         values.push(val);
     });
 
-    // Update chart
     if (historyChart) {
         historyChart.data.labels = labels;
         historyChart.data.datasets[0].label = activeMetricLabel;
@@ -288,7 +400,6 @@ function renderHistoryModal() {
         historyChart.update();
     }
 
-    // Update table
     const tbody = document.querySelector("#historyTable tbody");
     if (!tbody) return;
     tbody.innerHTML = "";
