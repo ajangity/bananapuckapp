@@ -22,8 +22,8 @@
       background: #f5c400;
       color: white;
       text-align: center;
-      padding: 30px 10px;
-      font-size: 36px;
+      padding: 32px 10px;
+      font-size: 38px;
       font-weight: bold;
     }
 
@@ -35,14 +35,12 @@
       margin-bottom: 15px;
     }
 
-    /* GRID */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 20px;
     }
 
-    /* SENSOR CARD */
     .card {
       background: white;
       border-radius: 14px;
@@ -52,9 +50,7 @@
       transition: transform 0.15s ease;
     }
 
-    .card:hover {
-      transform: translateY(-4px);
-    }
+    .card:hover { transform: translateY(-4px); }
 
     .safe { background: #e7f6ea; }
     .warning { background: #fff6d8; }
@@ -63,6 +59,13 @@
     .value {
       font-size: 22px;
       margin-top: 10px;
+    }
+
+    /* MAP */
+    #map {
+      height: 360px;
+      border-radius: 14px;
+      margin: 20px;
     }
 
     /* MODAL */
@@ -83,10 +86,16 @@
       overflow-y: auto;
       border-radius: 16px;
       padding: 25px;
+      position: relative;
     }
 
-    .modal h3 {
-      margin-top: 0;
+    .close-x {
+      position: absolute;
+      top: 12px;
+      right: 18px;
+      font-size: 22px;
+      cursor: pointer;
+      font-weight: bold;
     }
 
     table {
@@ -101,100 +110,116 @@
       text-align: center;
     }
 
-    th {
-      background: #f5f5f5;
+    th { background: #f5f5f5; }
+
+    /* ALERTS */
+    .alert {
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      background: #fdeaea;
+      display: flex;
+      justify-content: space-between;
     }
 
-    button {
-      margin-top: 15px;
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-
-    #map {
-      height: 300px;
-      border-radius: 12px;
-    }
+    select { margin-left: 10px; }
   </style>
 </head>
 
 <body>
-  <header>BananaPuck Live Dashboard</header>
 
-  <section>
-    <h2>Vitals</h2>
-    <div class="grid">
-      <div class="card" id="hrCard" onclick="openModal('Heart Rate', 'hr')">
-        <strong>Heart Rate</strong>
-        <div class="value" id="hrValue">-- bpm</div>
-      </div>
+<header>BananaPuck Live Dashboard</header>
 
-      <div class="card" id="brCard" onclick="openModal('Respiration', 'breathing')">
-        <strong>Respiration</strong>
-        <div class="value" id="brValue">-- breaths/min</div>
-      </div>
+<!-- MAP AT TOP -->
+<div id="map"></div>
 
-      <div class="card" id="tempCard" onclick="openModal('Temperature', 'temp')">
-        <strong>Temperature</strong>
-        <div class="value" id="tempValue">-- °F</div>
-      </div>
-    </div>
-  </section>
+<section>
+  <h2>Alerts</h2>
 
-  <section>
-    <h2>Motion & Orientation</h2>
-    <div class="grid">
-      <div class="card">
-        <strong>Acceleration</strong>
-        <div class="value" id="accelValue">--</div>
-      </div>
-
-      <div class="card">
-        <strong>Gyroscope</strong>
-        <div class="value" id="gyroValue">--</div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <h2>Environment & Position</h2>
-    <div class="grid">
-      <div class="card">
-        <strong>GPS</strong>
-        <div class="value" id="gpsValue">--</div>
-      </div>
-
-      <div class="card">
-        <strong>Water Submergence</strong>
-        <div class="value" id="waterValue">--</div>
-      </div>
-
-      <div class="card">
-        <strong>Location Mapping</strong>
-        <div id="map"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- MODAL -->
-  <div class="modal" id="modal">
-    <div class="modal-content">
-      <h3 id="modalTitle"></h3>
-      <canvas id="chart"></canvas>
-      <table>
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Value</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-      <button onclick="closeModal()">Close</button>
-    </div>
+  <div>
+    <strong>Active Alerts</strong>
+    <div id="activeAlerts"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="app.js"></script>
+  <div style="margin-top:15px;">
+    <strong>History</strong>
+    <select id="alertRange" onchange="renderAlertHistory()">
+      <option value="1">Last hour</option>
+      <option value="12">Last 12 hours</option>
+      <option value="24">Last day</option>
+      <option value="168">Last week</option>
+      <option value="720">Last month</option>
+    </select>
+    <div id="alertHistory"></div>
+  </div>
+</section>
+
+<section>
+  <h2>Vitals</h2>
+  <div class="grid">
+    <div class="card" id="hrCard" onclick="openModal('Heart Rate', 'hr')">
+      <strong>Heart Rate</strong>
+      <div class="value" id="hrValue">-- bpm</div>
+    </div>
+
+    <div class="card" id="brCard" onclick="openModal('Respiration', 'breathing')">
+      <strong>Respiration</strong>
+      <div class="value" id="brValue">-- breaths/min</div>
+    </div>
+
+    <div class="card" id="tempCard" onclick="openModal('Temperature', 'temp')">
+      <strong>Temperature</strong>
+      <div class="value" id="tempValue">-- °F</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Motion & Orientation</h2>
+  <div class="grid">
+    <div class="card">
+      <strong>Acceleration</strong>
+      <div class="value" id="accelValue">--</div>
+    </div>
+
+    <div class="card">
+      <strong>Gyroscope</strong>
+      <div class="value" id="gyroValue">--</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Environment & Position</h2>
+  <div class="grid">
+    <div class="card">
+      <strong>GPS</strong>
+      <div class="value" id="gpsValue">--</div>
+    </div>
+
+    <div class="card">
+      <strong>Water Submergence</strong>
+      <div class="value" id="waterValue">--</div>
+    </div>
+  </div>
+</section>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="close-x" onclick="closeModal()">✕</div>
+    <h3 id="modalTitle"></h3>
+    <canvas id="chart"></canvas>
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Value</th></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
