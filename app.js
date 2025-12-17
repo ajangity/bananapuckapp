@@ -219,7 +219,7 @@ function renderAlertHistory() {
   filtered.forEach(a => {
     container.innerHTML += `
       <div class="alert">
-        <div class="alert-title">${a.msg}</div>
+        <div class="alert-title">${a.message}</div>
         <div class="alert-meta">${a.time.toLocaleString()}</div>
       </div>`;
   });
