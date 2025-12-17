@@ -7,8 +7,33 @@ let chart;
 const STORAGE_KEY = "bananapuck_data";
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
-/* Load persisted data */
-(function loadStoredData() {
+/* ---------- PERSISTENCE ---------- */
+function saveData() {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      historyData,
+      alerts
+    })
+  );
+}
+
+function pruneOldData() {
+  const cutoff = Date.now() - ONE_MONTH_MS;
+
+  // prune alerts
+  alerts = alerts.filter(a => new Date(a.time).getTime() > cutoff);
+
+  // prune history
+  Object.keys(historyData).forEach(k => {
+    historyData[k] = historyData[k].filter(p => new Date(p.time).getTime() > cutoff);
+  });
+
+  saveData();
+}
+
+/* Load persisted data (ONCE) */
+(function loadDataOnce() {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) return;
 
@@ -16,18 +41,19 @@ const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
     const parsed = JSON.parse(stored);
 
     historyData = parsed.historyData || historyData;
-    alerts = (parsed.alerts || []).map(a => ({
-      ...a,
-      time: new Date(a.time)
-    }));
 
-    // convert history timestamps back to Date
+    // restore Dates
     Object.keys(historyData).forEach(k => {
-      historyData[k] = historyData[k].map(p => ({
+      historyData[k] = (historyData[k] || []).map(p => ({
         ...p,
         time: new Date(p.time)
       }));
     });
+
+    alerts = (parsed.alerts || []).map(a => ({
+      ...a,
+      time: new Date(a.time)
+    }));
 
     pruneOldData();
   } catch (e) {
@@ -35,8 +61,7 @@ const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
   }
 })();
 
-
-/* MAP */
+/* ---------- MAP ---------- */
 const map = L.map("map").setView([36.9741, -122.0308], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 const marker = L.marker([36.9741, -122.0308]).addTo(map);
@@ -68,31 +93,7 @@ async function fetchData() {
   pruneOldData();
 }
 
-/* DATA SAVING */
-function saveData() {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({
-      historyData,
-      alerts
-    })
-  );
-}
-
-function pruneOldData() {
-  const cutoff = Date.now() - ONE_MONTH_MS;
-
-  // prune alerts
-  alerts = alerts.filter(a => a.time.getTime() > cutoff);
-
-  // prune history
-  Object.keys(historyData).forEach(k => {
-    historyData[k] = historyData[k].filter(p => p.time.getTime() > cutoff);
-  });
-
-  saveData();
-}
-
+/* ---------- SENSOR HISTORY ---------- */
 function updateSensor(key, value, min, max, unit) {
   const card = document.getElementById(
     key === "hr" ? "hrCard" :
@@ -116,48 +117,51 @@ function updateSensor(key, value, min, max, unit) {
   ).innerText = `${value.toFixed(1)} ${unit}`;
 
   historyData[key].push({ time: new Date(), value });
-  if (historyData[key].length > 300) historyData[key].shift();
-  
+  if (historyData[key].length > 3000) historyData[key].shift(); // optional: larger buffer
   saveData();
 }
 
-/* ALERTS */
+/* ---------- ALERTS ---------- */
 function addAlert(msg) {
-  alerts.push({ msg, time: new Date(), acknowledged: false });
+  alerts.push({
+    msg,
+    time: new Date(),
+    acknowledged: false
+  });
+
   saveData();
   renderAlerts();
 }
-
 
 function renderAlerts() {
   const container = document.getElementById("activeAlerts");
   container.innerHTML = "";
 
-  // group unacknowledged alerts by message
-  const grouped = {};
+  // group ONLY unacknowledged alerts in ACTIVE view
+  const groups = {};
   alerts.forEach(a => {
     if (!a.acknowledged) {
-      if (!grouped[a.msg]) grouped[a.msg] = [];
-      grouped[a.msg].push(a.time);
+      if (!groups[a.msg]) groups[a.msg] = [];
+      groups[a.msg].push(a);
     }
   });
 
-  const messages = Object.keys(grouped);
+  const keys = Object.keys(groups);
 
-  if (messages.length === 0) {
+  if (keys.length === 0) {
     container.innerHTML = "<em>No active alerts</em>";
     return;
   }
 
-  messages.forEach(msg => {
-    const timesHtml = grouped[msg]
-      .map(t => t.toLocaleString())
+  keys.forEach(msg => {
+    const times = groups[msg]
+      .map(a => a.time.toLocaleString())
       .join("<br>");
 
     container.innerHTML += `
       <div class="alert">
         <div class="alert-title">${msg}</div>
-        <div class="alert-meta">${timesHtml}</div>
+        <div class="alert-meta">${times}</div>
         <span class="close" onclick="ackAlertGroup(${JSON.stringify(msg)})">✕</span>
       </div>`;
   });
@@ -169,20 +173,47 @@ function ackAlertGroup(msg) {
       a.acknowledged = true;
     }
   });
+
   saveData();
   renderAlerts();
 }
 
-/* Clear all active alerts */
 function clearAllActiveAlerts() {
   alerts.forEach(a => {
     if (!a.acknowledged) a.acknowledged = true;
   });
+
   saveData();
   renderAlerts();
 }
 
-/* Tabs */
+/* History: NOT grouped, NOT clearable */
+function renderAlertHistory() {
+  const hours = document.getElementById("alertRange").value;
+  const cutoff = new Date(Date.now() - hours * 3600000);
+  const container = document.getElementById("alertHistory");
+
+  container.innerHTML = "";
+
+  const filtered = alerts
+    .filter(a => a.time >= cutoff)
+    .sort((a, b) => b.time - a.time);
+
+  if (filtered.length === 0) {
+    container.innerHTML = "<em>No alerts in this range</em>";
+    return;
+  }
+
+  filtered.forEach(a => {
+    container.innerHTML += `
+      <div class="alert">
+        <div class="alert-title">${a.msg}</div>
+        <div class="alert-meta">${a.time.toLocaleString()}</div>
+      </div>`;
+  });
+}
+
+/* ---------- TABS ---------- */
 function showActiveAlerts() {
   document.getElementById("activeAlerts").style.display = "block";
   document.getElementById("alertHistory").style.display = "none";
@@ -193,6 +224,8 @@ function showActiveAlerts() {
   // toggle controls
   document.getElementById("alertRange").style.display = "none";
   document.getElementById("clearAllBtn").style.display = "inline-block";
+
+  renderAlerts();
 }
 
 function showHistoryAlerts() {
@@ -209,7 +242,7 @@ function showHistoryAlerts() {
   renderAlertHistory();
 }
 
-/* MODAL */
+/* ---------- MODAL ---------- */
 function openModal(title, key) {
   document.getElementById("modal").style.display = "flex";
   document.getElementById("modalTitle").innerText = `${title} History`;
@@ -238,6 +271,7 @@ function closeModal() {
   document.getElementById("modal").style.display = "none";
 }
 
+/* ---------- START ---------- */
 setInterval(fetchData, 2000);
 fetchData();
 showActiveAlerts();
