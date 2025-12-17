@@ -7,16 +7,20 @@ let chart;
 const STORAGE_KEY = "bananapuck_data";
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
+const ALERTS_API = "https://bananapuck-server.onrender.com/alerts";
+const ACK_API = "https://bananapuck-server.onrender.com/alerts/ack";
+
+
 /* ---------- PERSISTENCE ---------- */
 function saveData() {
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({
-      historyData,
-      alerts
+      historyData
     })
   );
 }
+
 
 function pruneOldData() {
   const cutoff = Date.now() - ONE_MONTH_MS;
@@ -49,11 +53,6 @@ function pruneOldData() {
         time: new Date(p.time)
       }));
     });
-
-    alerts = (parsed.alerts || []).map(a => ({
-      ...a,
-      time: new Date(a.time)
-    }));
 
     pruneOldData();
   } catch (e) {
@@ -93,6 +92,25 @@ async function fetchData() {
   pruneOldData();
 }
 
+async function fetchAlerts() {
+  const res = await fetch(ALERTS_API);
+  alerts = (await res.json()).map(a => ({
+    ...a,
+    time: new Date(a.timestamp * 1000)
+  }));
+  renderAlerts();
+}
+
+async function ackAlertGroup(type) {
+  await fetch(ACK_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type })
+  });
+
+  fetchAlerts();
+}
+
 /* ---------- SENSOR HISTORY ---------- */
 function updateSensor(key, value, min, max, unit) {
   const card = document.getElementById(
@@ -104,7 +122,6 @@ function updateSensor(key, value, min, max, unit) {
 
   if (value < min - 5 || value > max + 5) {
     card.classList.add("danger");
-    addAlert(`${key.toUpperCase()} unsafe: ${value.toFixed(1)} ${unit}`);
   } else if (value < min || value > max) {
     card.classList.add("warning");
   } else {
@@ -130,20 +147,6 @@ document.addEventListener("click", e => {
 });
 
 /* ---------- ALERTS ---------- */
-function addAlert(msg) {
-  const type = msg.split(" unsafe")[0]; // "BREATHING" or "HR"
-
-  alerts.push({
-    msg,
-    type,
-    time: new Date(),
-    acknowledged: false
-  });
-
-  saveData();
-  renderAlerts();
-}
-
 function renderAlerts() {
   const container = document.getElementById("activeAlerts");
   container.innerHTML = "";
@@ -177,28 +180,24 @@ function renderAlerts() {
       <span class="close" data-msg="${encodeURIComponent(type)}">✕</span>
     </div>`;
 });
-
 }
 
-function ackAlertGroup(type) {
-  alerts.forEach(a => {
-    if (a.type === type && !a.acknowledged) {
-      a.acknowledged = true;
-    }
-  });
+async function clearAllActiveAlerts() {
+  const activeTypes = [...new Set(
+    alerts.filter(a => !a.acknowledged).map(a => a.type)
+  )];
 
-  saveData();
-  renderAlerts();
+  for (const type of activeTypes) {
+    await fetch(ACK_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type })
+    });
+  }
+
+  fetchAlerts();
 }
 
-function clearAllActiveAlerts() {
-  alerts.forEach(a => {
-    if (!a.acknowledged) a.acknowledged = true;
-  });
-
-  saveData();
-  renderAlerts();
-}
 
 /* History: NOT grouped, NOT clearable */
 function renderAlertHistory() {
@@ -288,3 +287,5 @@ function closeModal() {
 setInterval(fetchData, 2000);
 fetchData();
 showActiveAlerts();
+setInterval(fetchAlerts, 3000);
+fetchAlerts();
