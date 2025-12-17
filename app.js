@@ -91,15 +91,15 @@ function renderAlerts() {
   }
 
   messages.forEach(msg => {
-    const times = grouped[msg]
+    const timesHtml = grouped[msg]
       .map(t => t.toLocaleString())
       .join("<br>");
 
     container.innerHTML += `
       <div class="alert">
         <div class="alert-title">${msg}</div>
-        <div class="alert-meta">${times}</div>
-        <span class="close" onclick="ackAlertGroup('${msg}')">✕</span>
+        <div class="alert-meta">${timesHtml}</div>
+        <span class="close" onclick="ackAlertGroup(${JSON.stringify(msg)})">✕</span>
       </div>`;
   });
 }
@@ -113,19 +113,39 @@ function ackAlertGroup(msg) {
   renderAlerts();
 }
 
-/* NEW: Clear all active alerts */
+/* Clear all active alerts */
 function clearAllActiveAlerts() {
   alerts.forEach(a => {
-    if (!a.acknowledged) {
-      a.acknowledged = true;
-    }
+    if (!a.acknowledged) a.acknowledged = true;
   });
   renderAlerts();
+}
 
-  // refresh history if visible
-  if (document.getElementById("alertHistory").style.display !== "none") {
-    renderAlertHistory();
-  }
+/* Tabs */
+function showActiveAlerts() {
+  document.getElementById("activeAlerts").style.display = "block";
+  document.getElementById("alertHistory").style.display = "none";
+
+  document.getElementById("activeTab").classList.add("active");
+  document.getElementById("historyTab").classList.remove("active");
+
+  // toggle controls
+  document.getElementById("alertRange").style.display = "none";
+  document.getElementById("clearAllBtn").style.display = "inline-block";
+}
+
+function showHistoryAlerts() {
+  document.getElementById("activeAlerts").style.display = "none";
+  document.getElementById("alertHistory").style.display = "block";
+
+  document.getElementById("activeTab").classList.remove("active");
+  document.getElementById("historyTab").classList.add("active");
+
+  // toggle controls
+  document.getElementById("alertRange").style.display = "inline-block";
+  document.getElementById("clearAllBtn").style.display = "none";
+
+  renderAlertHistory();
 }
 
 /* MODAL */

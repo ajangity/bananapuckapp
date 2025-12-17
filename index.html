@@ -187,8 +187,8 @@
   <button id="activeTab" class="active" onclick="showActiveAlerts()">Active</button>
   <button id="historyTab" onclick="showHistoryAlerts()">History</button>
 
-  <!-- moved dropdown next to History -->
-  <select id="alertRange" onchange="renderAlertHistory()">
+  <!-- History dropdown -->
+  <select id="alertRange" onchange="renderAlertHistory()" style="margin-left:auto;">
     <option value="1">Last hour</option>
     <option value="6">Last 6 hours</option>
     <option value="12">Last 12 hours</option>
@@ -197,8 +197,10 @@
     <option value="720">Last month</option>
   </select>
 
-  <!-- new clear all button -->
-  <button onclick="clearAllActiveAlerts()">Clear all</button>
+  <!-- Clear all (hidden by default) -->
+  <button id="clearAllBtn" onclick="clearAllActiveAlerts()" style="display:none;">
+    Clear all
+  </button>
 </div>
 
 
