@@ -3,7 +3,6 @@
   display: flex;
   gap: 10px;
   margin-bottom: 12px;
-  align-items: center;
 }
 
 .alert-tabs button {
@@ -18,11 +17,6 @@
 .alert-tabs button.active {
   background: #f5c400;
   color: white;
-}
-
-/* NEW: Clear all aligned right */
-.alert-tabs button.clear-all {
-  margin-left: auto;
 }
 
 .alert {

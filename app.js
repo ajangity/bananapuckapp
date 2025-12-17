@@ -88,24 +88,8 @@ function renderAlerts() {
 }
 
 function ackAlert(i) {
-  // (kept exactly as your existing logic)
   alerts[i].acknowledged = true;
   renderAlerts();
-}
-
-/* NEW: Clear all active alerts */
-function clearAllActiveAlerts() {
-  // mark only unacknowledged alerts as acknowledged
-  alerts.forEach(a => {
-    if (!a.acknowledged) a.acknowledged = true;
-  });
-
-  renderAlerts();
-
-  // if user is on History tab, refresh the list so it updates instantly
-  if (document.getElementById("alertHistory").style.display !== "none") {
-    renderAlertHistory();
-  }
 }
 
 function showActiveAlerts() {
