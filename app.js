@@ -4,6 +4,38 @@ let historyData = { hr: [], breathing: [], temp: [] };
 let alerts = [];
 let chart;
 
+const STORAGE_KEY = "bananapuck_data";
+const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+
+/* Load persisted data */
+(function loadStoredData() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return;
+
+  try {
+    const parsed = JSON.parse(stored);
+
+    historyData = parsed.historyData || historyData;
+    alerts = (parsed.alerts || []).map(a => ({
+      ...a,
+      time: new Date(a.time)
+    }));
+
+    // convert history timestamps back to Date
+    Object.keys(historyData).forEach(k => {
+      historyData[k] = historyData[k].map(p => ({
+        ...p,
+        time: new Date(p.time)
+      }));
+    });
+
+    pruneOldData();
+  } catch (e) {
+    console.warn("Failed to load stored data", e);
+  }
+})();
+
+
 /* MAP */
 const map = L.map("map").setView([36.9741, -122.0308], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
@@ -32,6 +64,33 @@ async function fetchData() {
 
   document.getElementById("waterValue").innerText =
     data.water_submerged ? "YES" : "NO";
+
+  pruneOldData();
+}
+
+/* DATA SAVING */
+function saveData() {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      historyData,
+      alerts
+    })
+  );
+}
+
+function pruneOldData() {
+  const cutoff = Date.now() - ONE_MONTH_MS;
+
+  // prune alerts
+  alerts = alerts.filter(a => a.time.getTime() > cutoff);
+
+  // prune history
+  Object.keys(historyData).forEach(k => {
+    historyData[k] = historyData[k].filter(p => p.time.getTime() > cutoff);
+  });
+
+  saveData();
 }
 
 function updateSensor(key, value, min, max, unit) {
@@ -58,17 +117,17 @@ function updateSensor(key, value, min, max, unit) {
 
   historyData[key].push({ time: new Date(), value });
   if (historyData[key].length > 300) historyData[key].shift();
+  
+  saveData();
 }
 
 /* ALERTS */
 function addAlert(msg) {
-  alerts.push({
-    msg,
-    time: new Date(),
-    acknowledged: false
-  });
+  alerts.push({ msg, time: new Date(), acknowledged: false });
+  saveData();
   renderAlerts();
 }
+
 
 function renderAlerts() {
   const container = document.getElementById("activeAlerts");
@@ -110,6 +169,7 @@ function ackAlertGroup(msg) {
       a.acknowledged = true;
     }
   });
+  saveData();
   renderAlerts();
 }
 
@@ -118,6 +178,7 @@ function clearAllActiveAlerts() {
   alerts.forEach(a => {
     if (!a.acknowledged) a.acknowledged = true;
   });
+  saveData();
   renderAlerts();
 }
 
