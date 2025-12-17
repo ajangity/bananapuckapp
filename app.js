@@ -1,98 +1,162 @@
 const API = "https://bananapuck-server.onrender.com/get_data";
 
+let historyData = { hr: [], breathing: [], temp: [] };
+let alerts = [];
 let chart;
 
-const safeRanges = {
-  hr: [50, 100],
-  temp: [97, 100.4],
-  accel: [0, 9.8]
-};
+/* MAP */
+const map = L.map("map").setView([36.9741, -122.0308], 13);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+const marker = L.marker([36.9741, -122.0308]).addTo(map);
 
-function statusClass(value, [min, max]) {
-  if (value < min || value > max) return "danger";
-  if (value < min + 2 || value > max - 2) return "warning";
-  return "safe";
-}
-
-async function loadData() {
+async function fetchData() {
   const res = await fetch(API);
-  const d = await res.json();
+  const data = await res.json();
 
-  // MAP
-  const map = L.map("map").setView([d.gps.lat || 36.9741, d.gps.lon || -122.0308], 13);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-  if (d.gps.lat && d.gps.lon) L.marker([d.gps.lat, d.gps.lon]).addTo(map);
+  updateSensor("hr", data.hr, 60, 100, "bpm");
+  updateSensor("breathing", data.breathing, 10, 20, "breaths/min");
+  updateSensor("temp", data.temp, 97, 99.5, "°F");
 
-  // ALERTS
-  document.getElementById("alerts").innerHTML = d.alerts_active.length
-    ? d.alerts_active.map(a => `
-      <div class="alert">
-        <strong>${a.title}</strong><br>
-        ${a.message}
-        <span class="close">✕</span>
-      </div>`).join("")
-    : "No active alerts";
+  document.getElementById("accelValue").innerText =
+    `X:${data.accel.x.toFixed(2)} Y:${data.accel.y.toFixed(2)} Z:${data.accel.z.toFixed(2)}`;
 
-  // VITALS
-  document.getElementById("vitals").innerHTML = `
-    <div class="card ${statusClass(d.hr, safeRanges.hr)}" onclick="openModal('Heart Rate', d.hr)">
-      <b>Heart Rate</b><br>${d.hr} bpm
-    </div>
-    <div class="card safe" onclick="openModal('Respiration', d.breathing)">
-      <b>Respiration</b><br>${d.breathing} /min
-    </div>
-    <div class="card ${statusClass(d.temp, safeRanges.temp)}" onclick="openModal('Temperature', d.temp)">
-      <b>Temperature</b><br>${d.temp} °F
-    </div>
-  `;
+  document.getElementById("gyroValue").innerText =
+    `X:${data.gyro.x.toFixed(2)} Y:${data.gyro.y.toFixed(2)} Z:${data.gyro.z.toFixed(2)}`;
 
-  // MOTION
-  document.getElementById("motion").innerHTML = `
-    <div class="card ${statusClass(d.accel.z, safeRanges.accel)}" onclick="openModal('Acceleration', d.accel.z)">
-      <b>Acceleration</b><br>Z: ${d.accel.z.toFixed(2)}
-    </div>
-    <div class="card safe" onclick="openModal('Gyroscope', d.gyro.z)">
-      <b>Gyroscope</b><br>Z: ${d.gyro.z.toFixed(2)}
-    </div>
-  `;
+  if (data.gps.lat !== null) {
+    document.getElementById("gpsValue").innerText =
+      `${data.gps.lat.toFixed(5)}, ${data.gps.lon.toFixed(5)} (±${data.gps.accuracy}m)`;
+    marker.setLatLng([data.gps.lat, data.gps.lon]);
+    map.setView([data.gps.lat, data.gps.lon], 15);
+  }
 
-  // ENVIRONMENT
-  document.getElementById("environment").innerHTML = `
-    <div class="card">
-      <b>GPS</b><br>
-      Lat: ${d.gps.lat ?? "--"}<br>
-      Lon: ${d.gps.lon ?? "--"}
-    </div>
-    <div class="card ${d.water_submerged ? "danger" : "safe"}">
-      <b>Water Submergence</b><br>${d.water_submerged ? "YES" : "NO"}
-    </div>
-    <div class="card safe">
-      <b>Map Location</b><br>
-      Upload step-by-step photos
-    </div>
-  `;
+  document.getElementById("waterValue").innerText =
+    data.water_submerged ? "YES" : "NO";
 }
 
-function openModal(title, value) {
-  document.getElementById("modal").style.display = "flex";
-  document.getElementById("modalTitle").innerText = title;
+function updateSensor(key, value, min, max, unit) {
+  const card = document.getElementById(
+    key === "hr" ? "hrCard" :
+    key === "breathing" ? "brCard" : "tempCard"
+  );
 
-  const labels = Array.from({ length: 20 }, (_, i) => i);
-  const data = labels.map(() => value + (Math.random() - 0.5));
+  card.classList.remove("safe", "warning", "danger");
+
+  if (value < min - 5 || value > max + 5) {
+    card.classList.add("danger");
+    addAlert(`${key.toUpperCase()} unsafe: ${value.toFixed(1)} ${unit}`);
+  } else if (value < min || value > max) {
+    card.classList.add("warning");
+  } else {
+    card.classList.add("safe");
+  }
+
+  document.getElementById(
+    key === "hr" ? "hrValue" :
+    key === "breathing" ? "brValue" : "tempValue"
+  ).innerText = `${value.toFixed(1)} ${unit}`;
+
+  historyData[key].push({ time: new Date(), value });
+  if (historyData[key].length > 300) historyData[key].shift();
+}
+
+/* ALERTS */
+function addAlert(msg) {
+  alerts.push({ msg, time: new Date(), acknowledged: false });
+  renderAlerts();
+}
+
+function renderAlerts() {
+  const container = document.getElementById("activeAlerts");
+  container.innerHTML = "";
+
+  const active = alerts.filter(a => !a.acknowledged);
+
+  if (active.length === 0) {
+    container.innerHTML = "<em>No active alerts</em>";
+    return;
+  }
+
+  active.forEach((a, i) => {
+    container.innerHTML += `
+      <div class="alert">
+        <div class="alert-title">${a.msg}</div>
+        <div class="alert-meta">${a.time.toLocaleString()}</div>
+        <span class="close" onclick="ackAlert(${i})">✕</span>
+      </div>`;
+  });
+}
+
+function ackAlert(i) {
+  alerts[i].acknowledged = true;
+  renderAlerts();
+}
+
+function showActiveAlerts() {
+  document.getElementById("activeAlerts").style.display = "block";
+  document.getElementById("alertHistory").style.display = "none";
+  document.getElementById("activeTab").classList.add("active");
+  document.getElementById("historyTab").classList.remove("active");
+}
+
+function showHistoryAlerts() {
+  document.getElementById("activeAlerts").style.display = "none";
+  document.getElementById("alertHistory").style.display = "block";
+  document.getElementById("activeTab").classList.remove("active");
+  document.getElementById("historyTab").classList.add("active");
+  renderAlertHistory();
+}
+
+function renderAlertHistory() {
+  const hours = document.getElementById("alertRange").value;
+  const cutoff = new Date(Date.now() - hours * 3600000);
+  const container = document.getElementById("alertHistory");
+  container.innerHTML = "";
+
+  const filtered = alerts.filter(a => a.time > cutoff);
+
+  if (filtered.length === 0) {
+    container.innerHTML = "<em>No alerts in this range</em>";
+    return;
+  }
+
+  filtered.forEach(a => {
+    container.innerHTML += `
+      <div class="alert">
+        <div class="alert-title">${a.msg}</div>
+        <div class="alert-meta">${a.time.toLocaleString()}</div>
+      </div>`;
+  });
+}
+
+/* MODAL */
+function openModal(title, key) {
+  document.getElementById("modal").style.display = "flex";
+  document.getElementById("modalTitle").innerText = `${title} History`;
+
+  const labels = historyData[key].map(p => p.time.toLocaleTimeString());
+  const values = historyData[key].map(p => p.value);
 
   if (chart) chart.destroy();
+
   chart = new Chart(document.getElementById("chart"), {
     type: "line",
-    data: { labels, datasets: [{ data, label: title }] }
+    data: {
+      labels,
+      datasets: [{ label: title, data: values }]
+    }
   });
 
-  document.getElementById("tableBody").innerHTML =
-    data.map((v, i) => `<tr><td>${i}</td><td>${v.toFixed(2)}</td></tr>`).join("");
+  const tbody = document.getElementById("tableBody");
+  tbody.innerHTML = "";
+  historyData[key].forEach(p => {
+    tbody.innerHTML += `<tr><td>${p.time.toLocaleTimeString()}</td><td>${p.value.toFixed(2)}</td></tr>`;
+  });
 }
 
 function closeModal() {
   document.getElementById("modal").style.display = "none";
 }
 
-loadData();
-setInterval(loadData, 3000);
+setInterval(fetchData, 2000);
+fetchData();
