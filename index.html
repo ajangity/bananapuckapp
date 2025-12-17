@@ -183,19 +183,24 @@
 <section>
   <h2>Alerts</h2>
 
-  <div class="alert-tabs">
-    <button id="activeTab" class="active" onclick="showActiveAlerts()">Active</button>
-    <button id="historyTab" onclick="showHistoryAlerts()">History</button>
+<div class="alert-tabs">
+  <button id="activeTab" class="active" onclick="showActiveAlerts()">Active</button>
+  <button id="historyTab" onclick="showHistoryAlerts()">History</button>
 
-    <select id="alertRange" onchange="renderAlertHistory()" style="margin-left:auto;">
-      <option value="1">Last hour</option>
-      <option value="6">Last 6 hours</option>
-      <option value="12">Last 12 hours</option>
-      <option value="24">Last day</option>
-      <option value="168">Last week</option>
-      <option value="720">Last month</option>
-    </select>
-  </div>
+  <!-- moved dropdown next to History -->
+  <select id="alertRange" onchange="renderAlertHistory()">
+    <option value="1">Last hour</option>
+    <option value="6">Last 6 hours</option>
+    <option value="12">Last 12 hours</option>
+    <option value="24">Last day</option>
+    <option value="168">Last week</option>
+    <option value="720">Last month</option>
+  </select>
+
+  <!-- new clear all button -->
+  <button onclick="clearAllActiveAlerts()">Clear all</button>
+</div>
+
 
   <div id="activeAlerts"></div>
   <div id="alertHistory" style="display:none;"></div>

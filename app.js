@@ -62,7 +62,11 @@ function updateSensor(key, value, min, max, unit) {
 
 /* ALERTS */
 function addAlert(msg) {
-  alerts.push({ msg, time: new Date(), acknowledged: false });
+  alerts.push({
+    msg,
+    time: new Date(),
+    acknowledged: false
+  });
   renderAlerts();
 }
 
@@ -70,63 +74,58 @@ function renderAlerts() {
   const container = document.getElementById("activeAlerts");
   container.innerHTML = "";
 
-  const active = alerts.filter(a => !a.acknowledged);
+  // group unacknowledged alerts by message
+  const grouped = {};
+  alerts.forEach(a => {
+    if (!a.acknowledged) {
+      if (!grouped[a.msg]) grouped[a.msg] = [];
+      grouped[a.msg].push(a.time);
+    }
+  });
 
-  if (active.length === 0) {
+  const messages = Object.keys(grouped);
+
+  if (messages.length === 0) {
     container.innerHTML = "<em>No active alerts</em>";
     return;
   }
 
-  active.forEach((a, i) => {
+  messages.forEach(msg => {
+    const times = grouped[msg]
+      .map(t => t.toLocaleString())
+      .join("<br>");
+
     container.innerHTML += `
       <div class="alert">
-        <div class="alert-title">${a.msg}</div>
-        <div class="alert-meta">${a.time.toLocaleString()}</div>
-        <span class="close" onclick="ackAlert(${i})">✕</span>
+        <div class="alert-title">${msg}</div>
+        <div class="alert-meta">${times}</div>
+        <span class="close" onclick="ackAlertGroup('${msg}')">✕</span>
       </div>`;
   });
 }
 
-function ackAlert(i) {
-  alerts[i].acknowledged = true;
+function ackAlertGroup(msg) {
+  alerts.forEach(a => {
+    if (a.msg === msg && !a.acknowledged) {
+      a.acknowledged = true;
+    }
+  });
   renderAlerts();
 }
 
-function showActiveAlerts() {
-  document.getElementById("activeAlerts").style.display = "block";
-  document.getElementById("alertHistory").style.display = "none";
-  document.getElementById("activeTab").classList.add("active");
-  document.getElementById("historyTab").classList.remove("active");
-}
-
-function showHistoryAlerts() {
-  document.getElementById("activeAlerts").style.display = "none";
-  document.getElementById("alertHistory").style.display = "block";
-  document.getElementById("activeTab").classList.remove("active");
-  document.getElementById("historyTab").classList.add("active");
-  renderAlertHistory();
-}
-
-function renderAlertHistory() {
-  const hours = document.getElementById("alertRange").value;
-  const cutoff = new Date(Date.now() - hours * 3600000);
-  const container = document.getElementById("alertHistory");
-  container.innerHTML = "";
-
-  const filtered = alerts.filter(a => a.time > cutoff);
-
-  if (filtered.length === 0) {
-    container.innerHTML = "<em>No alerts in this range</em>";
-    return;
-  }
-
-  filtered.forEach(a => {
-    container.innerHTML += `
-      <div class="alert">
-        <div class="alert-title">${a.msg}</div>
-        <div class="alert-meta">${a.time.toLocaleString()}</div>
-      </div>`;
+/* NEW: Clear all active alerts */
+function clearAllActiveAlerts() {
+  alerts.forEach(a => {
+    if (!a.acknowledged) {
+      a.acknowledged = true;
+    }
   });
+  renderAlerts();
+
+  // refresh history if visible
+  if (document.getElementById("alertHistory").style.display !== "none") {
+    renderAlertHistory();
+  }
 }
 
 /* MODAL */
