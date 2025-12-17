@@ -225,6 +225,38 @@ function renderAlertHistory() {
   });
 }
 
+function exportAlertsCSV() {
+  const hours = document.getElementById("alertRange").value;
+  const cutoff = Date.now() - hours * 3600000;
+
+  const filtered = alerts
+    .filter(a => a.time.getTime() >= cutoff)
+    .sort((a, b) => a.time - b.time);
+
+  if (filtered.length === 0) {
+    alert("No alerts in the selected time range.");
+    return;
+  }
+
+  let csv = "Type,Message,Timestamp,Acknowledged\n";
+
+  filtered.forEach(a => {
+    csv += `"${a.type}","${a.message}","${a.time.toISOString()}","${a.acknowledged}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `bananapuck_alerts_last_${hours}_hours.csv`;
+  document.body.appendChild(link);
+  link.click();
+
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 /* ---------- TABS ---------- */
 function showActiveAlerts() {
   document.getElementById("activeAlerts").style.display = "block";
@@ -233,12 +265,13 @@ function showActiveAlerts() {
   document.getElementById("activeTab").classList.add("active");
   document.getElementById("historyTab").classList.remove("active");
 
-  // toggle controls
   document.getElementById("alertRange").style.display = "none";
   document.getElementById("clearAllBtn").style.display = "inline-block";
+  document.getElementById("exportCsvBtn").style.display = "none";
 
   renderAlerts();
 }
+
 
 function showHistoryAlerts() {
   document.getElementById("activeAlerts").style.display = "none";
@@ -247,12 +280,13 @@ function showHistoryAlerts() {
   document.getElementById("activeTab").classList.remove("active");
   document.getElementById("historyTab").classList.add("active");
 
-  // toggle controls
   document.getElementById("alertRange").style.display = "inline-block";
   document.getElementById("clearAllBtn").style.display = "none";
+  document.getElementById("exportCsvBtn").style.display = "inline-block";
 
   renderAlertHistory();
 }
+
 
 /* ---------- MODAL ---------- */
 function openModal(title, key) {
