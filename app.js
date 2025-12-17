@@ -238,10 +238,17 @@ function exportAlertsCSV() {
     return;
   }
 
-  let csv = "Type,Message,Timestamp,Acknowledged\n";
+  // CSV header
+  let csv = "Alert Type,Value,Timestamp\n";
 
   filtered.forEach(a => {
-    csv += `"${a.type}","${a.message}","${a.time.toISOString()}","${a.acknowledged}"\n`;
+    // Extract value from message (everything after colon)
+    let value = "";
+    if (a.message && a.message.includes(":")) {
+      value = a.message.split(":").slice(1).join(":").trim();
+    }
+
+    csv += `"${a.type}","${value}","${a.time.toLocaleString()}"\n`;
   });
 
   const blob = new Blob([csv], { type: "text/csv" });
