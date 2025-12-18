@@ -187,13 +187,26 @@ function renderAlerts() {
       ? "Fall detected"
       : `${type} unsafe`;
 
+    const now = Date.now();
+
     const times = group.map(a => {
       let line = a.time.toLocaleString();
-      if (a.type === "FALL" && a.coords) {
-        line += `<br>📍 ${a.coords.lat.toFixed(5)}, ${a.coords.lon.toFixed(5)}`;
+
+      if (a.type === "FALL") {
+        if (a.started_at) {
+          const start = new Date(a.started_at).getTime();
+          const seconds = Math.floor((now - start) / 1000);
+          line += `<br>⏱️ Time fallen: ${seconds} seconds`;
+        }
+
+        if (a.coords) {
+          line += `<br>📍 ${a.coords.lat.toFixed(5)}, ${a.coords.lon.toFixed(5)}`;
+        }
       }
+
       return line;
     }).join("<br><br>");
+
 
 
     container.innerHTML += `
