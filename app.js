@@ -182,8 +182,19 @@ function renderAlerts() {
   keys.forEach(type => {
     const group = groups[type];
 
-    const title = `${type} unsafe`;
-    const times = group.map(a => a.time.toLocaleString()).join("<br>");
+    const title =
+      type === "FALL"
+      ? "Fall detected"
+      : `${type} unsafe`;
+
+    const times = group.map(a => {
+      let line = a.time.toLocaleString();
+      if (a.type === "FALL" && a.coords) {
+        line += `<br>📍 ${a.coords.lat.toFixed(5)}, ${a.coords.lon.toFixed(5)}`;
+      }
+      return line;
+    }).join("<br><br>");
+
 
     container.innerHTML += `
       <div class="alert">
