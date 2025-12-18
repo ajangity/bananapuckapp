@@ -135,8 +135,19 @@ function updateSensor(key, value, min, max, unit) {
   ).innerText = `${value.toFixed(1)} ${unit}`;
 
   historyData[key].push({ time: new Date(), value });
-  if (historyData[key].length > 3000) historyData[key].shift();
-  saveData();
+  if (historyData[key].length > 1000) historyData[key].shift();
+  
+  let lastSave = 0;
+
+  function throttledSave() {
+    const now = Date.now();
+    if (now - lastSave > 15000) { // every 15 seconds
+      saveData();
+      lastSave = now;
+    }
+  }
+
+  throttledSave();
 }
 
 document.addEventListener("click", e => {
@@ -315,6 +326,8 @@ function getFilteredSensorData() {
 }
 
 function updateSensorView() {
+  if (document.getElementById("modal").style.display !== "flex") return;
+
   const data = getFilteredSensorData();
 
   const labels = data.map(p => p.time.toLocaleTimeString());
@@ -410,7 +423,7 @@ function closeModal() {
 }
 
 /* ---------- START ---------- */
-setInterval(fetchData, 2000);
+setInterval(fetchData, 4000);
 fetchData();
 showActiveAlerts();
 setInterval(fetchAlerts, 3000);
