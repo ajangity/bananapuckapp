@@ -12,6 +12,12 @@ const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 const ALERTS_API = "https://bananapuck-server.onrender.com/alerts";
 const ACK_API = "https://bananapuck-server.onrender.com/alerts/ack";
 
+const SETTINGS_KEY = "bananapuck_settings";
+
+let refreshIntervalMs = 4000; // default: 4s
+let dataIntervalId = null;
+let alertsIntervalId = null;
+
 
 /* ---------- PERSISTENCE ---------- */
 function saveData() {
@@ -60,6 +66,20 @@ function pruneOldData() {
     console.warn("Failed to load stored data", e);
   }
 })();
+
+function loadSettings() {
+  const stored = localStorage.getItem(SETTINGS_KEY);
+  if (!stored) return;
+
+  try {
+    const settings = JSON.parse(stored);
+    if (settings.refreshIntervalMs) {
+      refreshIntervalMs = settings.refreshIntervalMs;
+    }
+  } catch {
+    console.warn("Failed to load settings");
+  }
+}
 
 function goToSettings() {
   window.location.href = "settings.html";
@@ -450,9 +470,25 @@ function closeModal() {
   document.getElementById("modal").style.display = "none";
 }
 
+function loadSettings() {
+  const stored = localStorage.getItem(SETTINGS_KEY);
+  if (!stored) return;
+
+  try {
+    const settings = JSON.parse(stored);
+    if (settings.refreshIntervalMs) {
+      refreshIntervalMs = settings.refreshIntervalMs;
+    }
+  } catch {
+    console.warn("Failed to load settings");
+  }
+}
+
+
 /* ---------- START ---------- */
-setInterval(fetchData, 4000);
+loadSettings();
+applyRefreshIntervals();
+
 fetchData();
-showActiveAlerts();
-setInterval(fetchAlerts, 3000);
 fetchAlerts();
+showActiveAlerts();
