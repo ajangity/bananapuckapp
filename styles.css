@@ -3,7 +3,7 @@
   display: flex;
   gap: 10px;
   margin-bottom: 12px;
-  align-items: center; /* keeps everything aligned */
+  align-items: center;
 }
 
 .alert-tabs button {
@@ -49,12 +49,12 @@
 }
 
 #clearAllBtn {
-  margin-left: auto;          /* pushes to far right */
-  display: inline-block;      /* ensures it behaves like a normal flex item */
+  margin-left: auto;
+  display: inline-block;
 }
 
 #alertRange {
-  margin-left: auto; /* dropdown is right-aligned in History */
+  margin-left: auto;
 }
 
 #exportCsvBtn {
@@ -66,38 +66,31 @@
   font-weight: bold;
 }
 
-/* HEADER + SETTINGS BUTTON (NEW, REQUESTED) */
+/* HEADER (branding only) */
 .app-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
   background: #f5c400;
   color: white;
-
   padding: 22px 24px;
   font-size: 32px;
   font-weight: bold;
 }
 
-.header-left {
-  white-space: nowrap;
+/* TOP CONTROL BAR (below header, above map) */
+.top-controls {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 20px;
+  background: #f4f6f8;
 }
 
 .settings-btn {
   background: none;
   border: none;
-  color: white;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
   cursor: pointer;
+  color: #555;
   padding: 6px;
-  border-radius: 8px;
 }
 
 .settings-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  color: #000;
 }
