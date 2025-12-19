@@ -97,3 +97,14 @@
 .settings-btn:hover {
   background: rgba(0, 0, 0, 0.06);
 }
+
+/* SAFE OR DANGER RANGES */
+.safe {
+  background: #e6f4ea;
+  border-left: 6px solid #2ecc71;
+}
+
+.danger {
+  background: #fdeaea;
+  border-left: 6px solid #e74c3c;
+}

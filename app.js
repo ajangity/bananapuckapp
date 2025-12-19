@@ -119,8 +119,19 @@ async function fetchData() {
     map.setView([data.gps.lat, data.gps.lon], 15);
   }
 
-  document.getElementById("waterValue").innerText =
-    data.water_submerged ? "YES" : "NO";
+  const waterCard = document.getElementById("waterCard");
+  const waterValue = document.getElementById("waterValue");
+
+  if (data.water_submerged) {
+    waterValue.innerText = "YES";
+    waterCard.classList.remove("safe");
+    waterCard.classList.add("danger");
+  } else {
+    waterValue.innerText = "NO";
+    waterCard.classList.remove("danger");
+    waterCard.classList.add("safe");
+  }
+
 
   /* ---------- CO (ppm) ---------- */
   if (data.co_ppm !== undefined && data.co_ppm !== null) {
