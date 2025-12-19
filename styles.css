@@ -73,19 +73,18 @@
   padding: 22px 24px;
   font-size: 32px;
   font-weight: bold;
+  text-align: center;
 }
 
 /* TOP CONTROL BAR (below header, above map) */
 .top-controls {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
 
-  /* match map horizontal alignment */
-  margin: 16px 20px 0 20px;
-
-  /* same visual gap as header → content */
-  padding: 0;
+  /* EXACTLY match the map card spacing */
+  margin: 16px 32px 0 32px;
 }
+
 .settings-btn {
   background: none;
   border: none;

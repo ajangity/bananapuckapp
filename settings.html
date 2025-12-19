@@ -52,14 +52,23 @@
 </header>
 
 <main>
-  <p>
-    Settings will go here.
-  </p>
+    <section>
+        <h3>Data Refresh Rate</h3>
+        <select id="refreshRate">
+            <option value="5000">Every 5 seconds</option>
+            <option value="10000">Every 10 seconds</option>
+            <option value="15000">Every 15 seconds</option>
+            <option value="30000">Every 30 seconds</option>
+            <option value="60000">Every minute</option>
+            <option value="300000">Every 5 minutes</option>
+        </select>
+    </section>
 </main>
 
 <script>
   function saveSettings() {
-    // Placeholder for future settings persistence
+    const refreshRate = document.getElementById("refreshRate").value;
+    localStorage.setItem("refreshRate", refreshRate);
     window.location.href = "index.html";
   }
 </script>

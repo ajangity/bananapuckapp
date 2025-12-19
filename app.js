@@ -484,6 +484,16 @@ function loadSettings() {
   }
 }
 
+function applyRefreshIntervals() {
+  // clear old intervals if they exist
+  if (dataIntervalId) clearInterval(dataIntervalId);
+  if (alertsIntervalId) clearInterval(alertsIntervalId);
+
+  // start new intervals using current settings
+  dataIntervalId = setInterval(fetchData, refreshIntervalMs);
+  alertsIntervalId = setInterval(fetchAlerts, 3000); // alerts can stay fixed
+}
+
 
 /* ---------- START ---------- */
 loadSettings();
