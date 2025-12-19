@@ -3,7 +3,7 @@
   display: flex;
   gap: 10px;
   margin-bottom: 12px;
-  align-items: center; /* NEW: keeps everything aligned */
+  align-items: center; /* keeps everything aligned */
 }
 
 .alert-tabs button {
@@ -64,4 +64,31 @@
   cursor: pointer;
   background: #eee;
   font-weight: bold;
+}
+
+/* HEADER + SETTINGS BUTTON (NEW, REQUESTED) */
+.app-header {
+  position: relative;
+  background: #f5c400;
+  color: white;
+  text-align: center;
+  padding: 32px 10px;
+  font-size: 38px;
+  font-weight: bold;
+}
+
+.settings-btn {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: white;
+  font-size: 26px;
+  cursor: pointer;
+}
+
+.settings-btn:hover {
+  opacity: 0.85;
 }

@@ -61,6 +61,10 @@ function pruneOldData() {
   }
 })();
 
+function goToSettings() {
+  window.location.href = "settings.html";
+}
+
 /* ---------- MAP ---------- */
 const map = L.map("map").setView([36.9741, -122.0308], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
