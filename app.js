@@ -21,10 +21,11 @@ let alertsIntervalId = null;
 
 // Safe paths management
 let safePaths = [];
-let drawControl = null;
-let currentDrawingLayer = null;
+let drawingMap = null;
+let drawingMapInitialized = false;
+let currentPathPoints = [];
+let currentPathPolyline = null;
 let isDrawing = false;
-let drawHandler = null;
 
 function applyRefreshIntervals() {
   if (dataIntervalId) clearInterval(dataIntervalId);
@@ -131,6 +132,7 @@ function saveSafePaths() {
 }
 
 function renderSafePaths() {
+  // Render on main map
   safePathsLayerGroup.clearLayers();
 
   safePaths.forEach((path, index) => {
@@ -146,11 +148,51 @@ function renderSafePaths() {
       polyline.bindPopup(`<strong>${path.name || `Path ${index + 1}`}</strong><br><button onclick="deleteSafePath(${index})" style="margin-top: 5px; padding: 4px 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>`);
     }
   });
+  
+  // Also render on drawing map if it exists
+  if (drawingMap) {
+    // Clear existing path layers (but keep markers)
+    drawingMap.eachLayer(function(layer) {
+      if (layer instanceof L.Polyline && layer !== currentPathPolyline) {
+        drawingMap.removeLayer(layer);
+      }
+    });
+    
+    // Add saved paths to drawing map
+    safePaths.forEach((path, index) => {
+      if (path.coordinates && path.coordinates.length > 0) {
+        const polyline = L.polyline(path.coordinates, {
+          color: "#2ecc71",
+          weight: 4,
+          opacity: 0.6,
+          dashArray: "10, 5"
+        }).addTo(drawingMap);
+        
+        polyline.bindPopup(`<strong>${path.name || `Path ${index + 1}`}</strong>`);
+      }
+    });
+  }
 }
 
 function openSafePathsModal() {
   document.getElementById("safePathsModal").style.display = "flex";
+  
+  // Initialize drawing map if not already done
+  if (!drawingMapInitialized) {
+    initializeDrawingMap();
+    drawingMapInitialized = true;
+  }
+  
+  // Center map on current GPS location if available, otherwise default location
+  if (marker && marker.getLatLng()) {
+    const currentPos = marker.getLatLng();
+    drawingMap.setView([currentPos.lat, currentPos.lng], 16);
+  } else {
+    drawingMap.setView([36.9741, -122.0308], 16);
+  }
+  
   renderSavedPathsList();
+  stopDrawingPath(); // Reset any drawing state
 }
 
 function closeSafePathsModal() {
@@ -158,154 +200,151 @@ function closeSafePathsModal() {
   stopDrawingPath();
 }
 
+function initializeDrawingMap() {
+  // Create a new map instance in the modal
+  const mapContainer = document.getElementById("drawingMap");
+  
+  // Get current position or use default
+  let initialLat = 36.9741;
+  let initialLon = -122.0308;
+  let initialZoom = 16;
+  
+  if (marker && marker.getLatLng()) {
+    const pos = marker.getLatLng();
+    initialLat = pos.lat;
+    initialLon = pos.lng;
+  }
+  
+  drawingMap = L.map("drawingMap", {
+    center: [initialLat, initialLon],
+    zoom: initialZoom,
+    zoomControl: true
+  });
+  
+  // Add tile layer
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(drawingMap);
+  
+  // Add click handler for drawing
+  drawingMap.on('click', function(e) {
+    if (isDrawing) {
+      addPointToPath(e.latlng);
+    }
+  });
+}
+
 function startDrawingPath() {
   if (isDrawing) return;
+  if (!drawingMap) {
+    alert("Map is not ready. Please wait a moment and try again.");
+    return;
+  }
 
   isDrawing = true;
+  currentPathPoints = [];
+  
+  // Clear any existing path
+  if (currentPathPolyline) {
+    drawingMap.removeLayer(currentPathPolyline);
+    currentPathPolyline = null;
+  }
+  
+  // Clear all markers from drawing map
+  drawingMap.eachLayer(function(layer) {
+    if (layer instanceof L.Marker) {
+      drawingMap.removeLayer(layer);
+    }
+  });
+  
   document.getElementById("startDrawingBtn").style.display = "none";
   document.getElementById("stopDrawingBtn").style.display = "inline-block";
   document.getElementById("savePathBtn").style.display = "none";
   document.getElementById("pathNameInput").style.display = "none";
-  document.getElementById("drawingInstruction").style.display = "block";
+  document.getElementById("drawingStatus").style.display = "block";
+  
+  // Change cursor to crosshair
+  document.getElementById("drawingMap").style.cursor = "crosshair";
+}
 
-  // Minimize the modal so map is visible
-  const modal = document.getElementById("safePathsModal");
-  modal.classList.add("minimized");
-
-  // Initialize Leaflet Draw for polyline only
-  drawControl = new L.Control.Draw({
-    draw: {
-      polyline: {
-        shapeOptions: {
-          color: "#2ecc71",
-          weight: 5
-        },
-        metric: true
-      },
-      polygon: false,
-      rectangle: false,
-      circle: false,
-      marker: false,
-      circlemarker: false
-    },
-    edit: false
-  });
-
-  map.addControl(drawControl);
-
-  // Handle when drawing is created
-  const onCreated = function(e) {
-    const layer = e.layer;
-    currentDrawingLayer = layer;
+function addPointToPath(latlng) {
+  if (!isDrawing) return;
+  
+  currentPathPoints.push([latlng.lat, latlng.lng]);
+  
+  // Update or create polyline
+  if (currentPathPolyline) {
+    drawingMap.removeLayer(currentPathPolyline);
+  }
+  
+  if (currentPathPoints.length >= 2) {
+    currentPathPolyline = L.polyline(currentPathPoints, {
+      color: "#2ecc71",
+      weight: 6,
+      opacity: 0.8
+    }).addTo(drawingMap);
     
-    // Store the drawing temporarily on map (not in safePathsLayerGroup yet)
-    layer.addTo(map);
-    
-    // Show save button and name input
+    // Show save button and name input when we have at least 2 points
     document.getElementById("savePathBtn").style.display = "inline-block";
     document.getElementById("pathNameInput").style.display = "block";
-    
-    // Remove draw control
-    if (drawControl) {
-      map.removeControl(drawControl);
-      drawControl = null;
-    }
-    
-    // Remove event listener
-    map.off(L.Draw.Event.CREATED, onCreated);
-    map.off(L.Draw.Event.DRAWSTOP, onDrawStop);
-    
-    isDrawing = false;
-    document.getElementById("startDrawingBtn").style.display = "inline-block";
-    document.getElementById("stopDrawingBtn").style.display = "none";
-    
-    // Restore modal size
-    const modal = document.getElementById("safePathsModal");
-    modal.classList.remove("minimized");
-    document.getElementById("drawingInstruction").style.display = "none";
-  };
-
-  // Handle when drawing is cancelled/stopped
-  const onDrawStop = function() {
-    if (currentDrawingLayer) {
-      map.removeLayer(currentDrawingLayer);
-      currentDrawingLayer = null;
-    }
-    document.getElementById("savePathBtn").style.display = "none";
-    document.getElementById("pathNameInput").style.display = "none";
-    
-    if (drawControl) {
-      map.removeControl(drawControl);
-      drawControl = null;
-    }
-    
-    map.off(L.Draw.Event.CREATED, onCreated);
-    map.off(L.Draw.Event.DRAWSTOP, onDrawStop);
-    
-    isDrawing = false;
-    document.getElementById("startDrawingBtn").style.display = "inline-block";
-    document.getElementById("stopDrawingBtn").style.display = "none";
-    document.getElementById("drawingInstruction").style.display = "none";
-    
-    // Restore modal size
-    const modal = document.getElementById("safePathsModal");
-    modal.classList.remove("minimized");
-  };
-
-  map.on(L.Draw.Event.CREATED, onCreated);
-  map.on(L.Draw.Event.DRAWSTOP, onDrawStop);
+  }
+  
+  // Add a marker at the click point
+  L.marker(latlng, {
+    icon: L.divIcon({
+      className: 'path-point-marker',
+      html: '<div style="background: #2ecc71; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 2px #2ecc71;"></div>',
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
+    })
+  }).addTo(drawingMap);
 }
 
 function stopDrawingPath() {
-  if (currentDrawingLayer) {
-    map.removeLayer(currentDrawingLayer);
-    currentDrawingLayer = null;
+  isDrawing = false;
+  
+  // Clear current path
+  if (currentPathPolyline) {
+    drawingMap.removeLayer(currentPathPolyline);
+    currentPathPolyline = null;
   }
   
-  // Remove draw control if it exists
-  if (drawControl) {
-    map.removeControl(drawControl);
-    drawControl = null;
+  // Clear all markers
+  if (drawingMap) {
+    drawingMap.eachLayer(function(layer) {
+      if (layer instanceof L.Marker) {
+        drawingMap.removeLayer(layer);
+      }
+    });
   }
-
-  // Clear all draw event listeners
-  map.off(L.Draw.Event.CREATED);
-  map.off(L.Draw.Event.DRAWSTOP);
-  map.off(L.Draw.Event.DRAWSTART);
-
-  isDrawing = false;
+  
+  currentPathPoints = [];
+  
   document.getElementById("startDrawingBtn").style.display = "inline-block";
   document.getElementById("stopDrawingBtn").style.display = "none";
   document.getElementById("savePathBtn").style.display = "none";
   document.getElementById("pathNameInput").style.display = "none";
-  document.getElementById("drawingInstruction").style.display = "none";
+  document.getElementById("drawingStatus").style.display = "none";
   
-  // Restore modal size
-  const modal = document.getElementById("safePathsModal");
-  modal.classList.remove("minimized");
+  // Reset cursor
+  const mapEl = document.getElementById("drawingMap");
+  if (mapEl) {
+    mapEl.style.cursor = "";
+  }
 }
 
 function saveCurrentPath() {
-  if (!currentDrawingLayer) {
-    alert("No path to save. Please draw a path first.");
+  if (!currentPathPoints || currentPathPoints.length < 2) {
+    alert("Path must have at least 2 points. Please add more points by clicking on the map.");
     return;
   }
 
   const pathName = document.getElementById("pathNameField").value.trim() || `Path ${safePaths.length + 1}`;
-  const latlngs = currentDrawingLayer.getLatLngs();
-  
-  // Convert LatLng objects to simple coordinate arrays
-  const coordinates = latlngs.map(ll => [ll.lat, ll.lng]);
-
-  if (coordinates.length < 2) {
-    alert("Path must have at least 2 points.");
-    return;
-  }
 
   // Add to safe paths
   safePaths.push({
     name: pathName,
-    coordinates: coordinates,
+    coordinates: currentPathPoints,
     createdAt: new Date().toISOString()
   });
 
@@ -314,16 +353,11 @@ function saveCurrentPath() {
   renderSavedPathsList();
 
   // Clean up
-  map.removeLayer(currentDrawingLayer);
-  currentDrawingLayer = null;
+  stopDrawingPath();
   document.getElementById("pathNameField").value = "";
-  document.getElementById("savePathBtn").style.display = "none";
-  document.getElementById("pathNameInput").style.display = "none";
-  document.getElementById("drawingInstruction").style.display = "none";
   
-  // Restore modal size
-  const modal = document.getElementById("safePathsModal");
-  modal.classList.remove("minimized");
+  // Show success message
+  alert(`Path "${pathName}" saved successfully! It will now appear on the main map.`);
 }
 
 function deleteSafePath(index) {

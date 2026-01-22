@@ -190,36 +190,8 @@
       background: rgba(0, 0, 0, 0.06);
     }
 
-    /* SAFE PATHS MODAL - Minimized state */
-    #safePathsModal.minimized .modal-content {
-      width: 350px;
-      max-height: 200px;
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      top: auto;
-      left: auto;
-      transform: none;
-    }
-
-    #safePathsModal.minimized {
-      background: transparent;
-      pointer-events: none;
-    }
-
-    #safePathsModal.minimized .modal-content {
-      pointer-events: all;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
-
-    .drawing-instruction {
-      background: #2ecc71;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      margin: 10px 0;
-      font-weight: bold;
-      text-align: center;
+    #drawingMap {
+      z-index: 1000;
     }
   </style>
 </head>
@@ -411,35 +383,53 @@
 
 <!-- SAFE PATHS MODAL -->
 <div class="modal" id="safePathsModal">
-  <div class="modal-content">
+  <div class="modal-content" style="width: 95%; max-width: 1200px; height: 90vh;">
     <div class="close-x" onclick="closeSafePathsModal()">✕</div>
     <h3>Safe Paths Management</h3>
-    <p style="color: #666; margin-bottom: 20px;">Draw safe walking paths on the map to help prevent getting lost. Click "Start Drawing" to begin creating a new path.</p>
+    <p style="color: #666; margin-bottom: 15px;">Draw safe walking paths on the map to help prevent getting lost. Click "Start Drawing" then click on the map to create your path.</p>
     
-    <div id="drawingInstruction" style="display: none;" class="drawing-instruction">
-      ✏️ Click the <strong>polyline tool</strong> on the map (top-left), then click points on the map to draw your path. Double-click to finish.
-    </div>
-    
-    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+    <div style="display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; align-items: center;">
       <button id="startDrawingBtn" onclick="startDrawingPath()" style="padding: 10px 20px; border-radius: 8px; border: none; background: #2ecc71; color: white; cursor: pointer; font-weight: bold;">
         Start Drawing
       </button>
       <button id="stopDrawingBtn" onclick="stopDrawingPath()" style="display: none; padding: 10px 20px; border-radius: 8px; border: none; background: #e74c3c; color: white; cursor: pointer; font-weight: bold;">
-        Stop Drawing
+        Cancel Drawing
       </button>
       <button onclick="saveCurrentPath()" id="savePathBtn" style="display: none; padding: 10px 20px; border-radius: 8px; border: none; background: #3498db; color: white; cursor: pointer; font-weight: bold;">
         Save Path
       </button>
+      <div id="drawingStatus" style="display: none; padding: 8px 15px; background: #fff3cd; border-radius: 8px; color: #856404; font-weight: bold;">
+        ✏️ Drawing mode active - Click on the map to add points to your path
+      </div>
     </div>
 
-    <div id="pathNameInput" style="display: none; margin-bottom: 20px;">
+    <div id="pathNameInput" style="display: none; margin-bottom: 15px;">
       <label style="display: block; margin-bottom: 5px; font-weight: bold;">Path Name:</label>
-      <input type="text" id="pathNameField" placeholder="e.g., Morning Walk Route" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+      <input type="text" id="pathNameField" placeholder="e.g., Morning Walk Route" style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
     </div>
 
-    <h4 style="margin-top: 30px; margin-bottom: 15px;">Saved Safe Paths</h4>
-    <div id="savedPathsList" style="max-height: 300px; overflow-y: auto;">
-      <!-- Paths will be listed here -->
+    <!-- Drawing Map -->
+    <div id="drawingMap" style="height: 500px; width: 100%; border-radius: 8px; border: 2px solid #ddd; margin-bottom: 20px;"></div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div>
+        <h4 style="margin-bottom: 15px;">Saved Safe Paths</h4>
+        <div id="savedPathsList" style="max-height: 200px; overflow-y: auto;">
+          <!-- Paths will be listed here -->
+        </div>
+      </div>
+      <div>
+        <h4 style="margin-bottom: 15px;">Instructions</h4>
+        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; font-size: 14px; line-height: 1.6;">
+          <ol style="margin: 0; padding-left: 20px;">
+            <li>Click "Start Drawing" to begin</li>
+            <li>Click on the map to add points along your desired path</li>
+            <li>Follow roads and sidewalks as you click</li>
+            <li>Click "Save Path" when finished</li>
+            <li>Give your path a name and save</li>
+          </ol>
+        </div>
+      </div>
     </div>
   </div>
 </div>
