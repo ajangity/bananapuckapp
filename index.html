@@ -189,6 +189,38 @@
     .control-buttons .settings-btn:hover {
       background: rgba(0, 0, 0, 0.06);
     }
+
+    /* SAFE PATHS MODAL - Minimized state */
+    #safePathsModal.minimized .modal-content {
+      width: 350px;
+      max-height: 200px;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      top: auto;
+      left: auto;
+      transform: none;
+    }
+
+    #safePathsModal.minimized {
+      background: transparent;
+      pointer-events: none;
+    }
+
+    #safePathsModal.minimized .modal-content {
+      pointer-events: all;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .drawing-instruction {
+      background: #2ecc71;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-weight: bold;
+      text-align: center;
+    }
   </style>
 </head>
 
@@ -383,6 +415,10 @@
     <div class="close-x" onclick="closeSafePathsModal()">✕</div>
     <h3>Safe Paths Management</h3>
     <p style="color: #666; margin-bottom: 20px;">Draw safe walking paths on the map to help prevent getting lost. Click "Start Drawing" to begin creating a new path.</p>
+    
+    <div id="drawingInstruction" style="display: none;" class="drawing-instruction">
+      ✏️ Click the <strong>polyline tool</strong> on the map (top-left), then click points on the map to draw your path. Double-click to finish.
+    </div>
     
     <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
       <button id="startDrawingBtn" onclick="startDrawingPath()" style="padding: 10px 20px; border-radius: 8px; border: none; background: #2ecc71; color: white; cursor: pointer; font-weight: bold;">

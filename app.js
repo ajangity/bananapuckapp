@@ -166,6 +166,11 @@ function startDrawingPath() {
   document.getElementById("stopDrawingBtn").style.display = "inline-block";
   document.getElementById("savePathBtn").style.display = "none";
   document.getElementById("pathNameInput").style.display = "none";
+  document.getElementById("drawingInstruction").style.display = "block";
+
+  // Minimize the modal so map is visible
+  const modal = document.getElementById("safePathsModal");
+  modal.classList.add("minimized");
 
   // Initialize Leaflet Draw for polyline only
   drawControl = new L.Control.Draw({
@@ -213,6 +218,11 @@ function startDrawingPath() {
     isDrawing = false;
     document.getElementById("startDrawingBtn").style.display = "inline-block";
     document.getElementById("stopDrawingBtn").style.display = "none";
+    
+    // Restore modal size
+    const modal = document.getElementById("safePathsModal");
+    modal.classList.remove("minimized");
+    document.getElementById("drawingInstruction").style.display = "none";
   };
 
   // Handle when drawing is cancelled/stopped
@@ -235,6 +245,11 @@ function startDrawingPath() {
     isDrawing = false;
     document.getElementById("startDrawingBtn").style.display = "inline-block";
     document.getElementById("stopDrawingBtn").style.display = "none";
+    document.getElementById("drawingInstruction").style.display = "none";
+    
+    // Restore modal size
+    const modal = document.getElementById("safePathsModal");
+    modal.classList.remove("minimized");
   };
 
   map.on(L.Draw.Event.CREATED, onCreated);
@@ -263,6 +278,11 @@ function stopDrawingPath() {
   document.getElementById("stopDrawingBtn").style.display = "none";
   document.getElementById("savePathBtn").style.display = "none";
   document.getElementById("pathNameInput").style.display = "none";
+  document.getElementById("drawingInstruction").style.display = "none";
+  
+  // Restore modal size
+  const modal = document.getElementById("safePathsModal");
+  modal.classList.remove("minimized");
 }
 
 function saveCurrentPath() {
@@ -299,6 +319,11 @@ function saveCurrentPath() {
   document.getElementById("pathNameField").value = "";
   document.getElementById("savePathBtn").style.display = "none";
   document.getElementById("pathNameInput").style.display = "none";
+  document.getElementById("drawingInstruction").style.display = "none";
+  
+  // Restore modal size
+  const modal = document.getElementById("safePathsModal");
+  modal.classList.remove("minimized");
 }
 
 function deleteSafePath(index) {
