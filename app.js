@@ -13,10 +13,18 @@ const ALERTS_API = "https://bananapuck-server.onrender.com/alerts";
 const ACK_API = "https://bananapuck-server.onrender.com/alerts/ack";
 
 const SETTINGS_KEY = "bananapuck_settings";
+const SAFE_PATHS_KEY = "bananapuck_safe_paths";
 
 let refreshIntervalMs = 4000; // default: 4s
 let dataIntervalId = null;
 let alertsIntervalId = null;
+
+// Safe paths management
+let safePaths = [];
+let drawControl = null;
+let currentDrawingLayer = null;
+let isDrawing = false;
+let drawHandler = null;
 
 function applyRefreshIntervals() {
   if (dataIntervalId) clearInterval(dataIntervalId);
@@ -97,6 +105,239 @@ function goToSettings() {
 const map = L.map("map").setView([36.9741, -122.0308], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 const marker = L.marker([36.9741, -122.0308]).addTo(map);
+
+// Layer group for safe paths
+const safePathsLayerGroup = L.layerGroup().addTo(map);
+
+/* ---------- SAFE PATHS ---------- */
+function loadSafePaths() {
+  const stored = localStorage.getItem(SAFE_PATHS_KEY);
+  if (!stored) {
+    safePaths = [];
+    return;
+  }
+
+  try {
+    safePaths = JSON.parse(stored);
+    renderSafePaths();
+  } catch (e) {
+    console.warn("Failed to load safe paths", e);
+    safePaths = [];
+  }
+}
+
+function saveSafePaths() {
+  localStorage.setItem(SAFE_PATHS_KEY, JSON.stringify(safePaths));
+}
+
+function renderSafePaths() {
+  safePathsLayerGroup.clearLayers();
+
+  safePaths.forEach((path, index) => {
+    if (path.coordinates && path.coordinates.length > 0) {
+      const polyline = L.polyline(path.coordinates, {
+        color: "#2ecc71",
+        weight: 5,
+        opacity: 0.8,
+        dashArray: "10, 5"
+      }).addTo(safePathsLayerGroup);
+
+      // Add popup with path name
+      polyline.bindPopup(`<strong>${path.name || `Path ${index + 1}`}</strong><br><button onclick="deleteSafePath(${index})" style="margin-top: 5px; padding: 4px 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>`);
+    }
+  });
+}
+
+function openSafePathsModal() {
+  document.getElementById("safePathsModal").style.display = "flex";
+  renderSavedPathsList();
+}
+
+function closeSafePathsModal() {
+  document.getElementById("safePathsModal").style.display = "none";
+  stopDrawingPath();
+}
+
+function startDrawingPath() {
+  if (isDrawing) return;
+
+  isDrawing = true;
+  document.getElementById("startDrawingBtn").style.display = "none";
+  document.getElementById("stopDrawingBtn").style.display = "inline-block";
+  document.getElementById("savePathBtn").style.display = "none";
+  document.getElementById("pathNameInput").style.display = "none";
+
+  // Initialize Leaflet Draw for polyline only
+  drawControl = new L.Control.Draw({
+    draw: {
+      polyline: {
+        shapeOptions: {
+          color: "#2ecc71",
+          weight: 5
+        },
+        metric: true
+      },
+      polygon: false,
+      rectangle: false,
+      circle: false,
+      marker: false,
+      circlemarker: false
+    },
+    edit: false
+  });
+
+  map.addControl(drawControl);
+
+  // Handle when drawing is created
+  const onCreated = function(e) {
+    const layer = e.layer;
+    currentDrawingLayer = layer;
+    
+    // Store the drawing temporarily on map (not in safePathsLayerGroup yet)
+    layer.addTo(map);
+    
+    // Show save button and name input
+    document.getElementById("savePathBtn").style.display = "inline-block";
+    document.getElementById("pathNameInput").style.display = "block";
+    
+    // Remove draw control
+    if (drawControl) {
+      map.removeControl(drawControl);
+      drawControl = null;
+    }
+    
+    // Remove event listener
+    map.off(L.Draw.Event.CREATED, onCreated);
+    map.off(L.Draw.Event.DRAWSTOP, onDrawStop);
+    
+    isDrawing = false;
+    document.getElementById("startDrawingBtn").style.display = "inline-block";
+    document.getElementById("stopDrawingBtn").style.display = "none";
+  };
+
+  // Handle when drawing is cancelled/stopped
+  const onDrawStop = function() {
+    if (currentDrawingLayer) {
+      map.removeLayer(currentDrawingLayer);
+      currentDrawingLayer = null;
+    }
+    document.getElementById("savePathBtn").style.display = "none";
+    document.getElementById("pathNameInput").style.display = "none";
+    
+    if (drawControl) {
+      map.removeControl(drawControl);
+      drawControl = null;
+    }
+    
+    map.off(L.Draw.Event.CREATED, onCreated);
+    map.off(L.Draw.Event.DRAWSTOP, onDrawStop);
+    
+    isDrawing = false;
+    document.getElementById("startDrawingBtn").style.display = "inline-block";
+    document.getElementById("stopDrawingBtn").style.display = "none";
+  };
+
+  map.on(L.Draw.Event.CREATED, onCreated);
+  map.on(L.Draw.Event.DRAWSTOP, onDrawStop);
+}
+
+function stopDrawingPath() {
+  if (currentDrawingLayer) {
+    map.removeLayer(currentDrawingLayer);
+    currentDrawingLayer = null;
+  }
+  
+  // Remove draw control if it exists
+  if (drawControl) {
+    map.removeControl(drawControl);
+    drawControl = null;
+  }
+
+  // Clear all draw event listeners
+  map.off(L.Draw.Event.CREATED);
+  map.off(L.Draw.Event.DRAWSTOP);
+  map.off(L.Draw.Event.DRAWSTART);
+
+  isDrawing = false;
+  document.getElementById("startDrawingBtn").style.display = "inline-block";
+  document.getElementById("stopDrawingBtn").style.display = "none";
+  document.getElementById("savePathBtn").style.display = "none";
+  document.getElementById("pathNameInput").style.display = "none";
+}
+
+function saveCurrentPath() {
+  if (!currentDrawingLayer) {
+    alert("No path to save. Please draw a path first.");
+    return;
+  }
+
+  const pathName = document.getElementById("pathNameField").value.trim() || `Path ${safePaths.length + 1}`;
+  const latlngs = currentDrawingLayer.getLatLngs();
+  
+  // Convert LatLng objects to simple coordinate arrays
+  const coordinates = latlngs.map(ll => [ll.lat, ll.lng]);
+
+  if (coordinates.length < 2) {
+    alert("Path must have at least 2 points.");
+    return;
+  }
+
+  // Add to safe paths
+  safePaths.push({
+    name: pathName,
+    coordinates: coordinates,
+    createdAt: new Date().toISOString()
+  });
+
+  saveSafePaths();
+  renderSafePaths();
+  renderSavedPathsList();
+
+  // Clean up
+  map.removeLayer(currentDrawingLayer);
+  currentDrawingLayer = null;
+  document.getElementById("pathNameField").value = "";
+  document.getElementById("savePathBtn").style.display = "none";
+  document.getElementById("pathNameInput").style.display = "none";
+}
+
+function deleteSafePath(index) {
+  if (confirm(`Are you sure you want to delete "${safePaths[index].name}"?`)) {
+    safePaths.splice(index, 1);
+    saveSafePaths();
+    renderSafePaths();
+    renderSavedPathsList();
+  }
+}
+
+function renderSavedPathsList() {
+  const container = document.getElementById("savedPathsList");
+  container.innerHTML = "";
+
+  if (safePaths.length === 0) {
+    container.innerHTML = "<p style='color: #999; font-style: italic;'>No safe paths saved yet. Click 'Start Drawing' to create your first path.</p>";
+    return;
+  }
+
+  safePaths.forEach((path, index) => {
+    const pathItem = document.createElement("div");
+    pathItem.style.cssText = "padding: 12px; margin-bottom: 10px; background: #f5f5f5; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;";
+    
+    pathItem.innerHTML = `
+      <div>
+        <strong>${path.name}</strong>
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">
+          ${path.coordinates.length} points • Created: ${new Date(path.createdAt).toLocaleDateString()}
+        </div>
+      </div>
+      <button onclick="deleteSafePath(${index})" style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+        Delete
+      </button>
+    `;
+    
+    container.appendChild(pathItem);
+  });
+}
 
 async function fetchData() {
   const res = await fetch(API);
@@ -564,6 +805,7 @@ function applyRefreshIntervals() {
 
 /* ---------- START ---------- */
 loadSettings();
+loadSafePaths();
 applyRefreshIntervals();
 
 fetchData();
