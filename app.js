@@ -29,12 +29,37 @@ let isDrawing = false;
 
 // Current status and sensor values
 let currentStatus = "unknown";
+let confirmedActivity = "unknown"; // Activity that's been stable long enough
+let lastActivityChangeTime = Date.now();
+let activityConfirmationCount = 0;
+let requiredConfirmations = 3; // Require 3 consistent readings before changing activity
+
 let lastSensorData = {
   hr: 0,
   breathing: 0,
   temp: 0,
   accel_mag: 0
 };
+
+// Activity minimum durations (in milliseconds)
+const ACTIVITY_MIN_DURATIONS = {
+  sleeping: 7 * 60 * 60 * 1000,        // 7 hours
+  napping: 60 * 60 * 1000,             // 1 hour
+  showering: 15 * 60 * 1000,           // 15 minutes
+  exercising: 30 * 60 * 1000,          // 30 minutes minimum
+  walking: 10 * 60 * 1000,             // 10 minutes
+  resting: 5 * 60 * 1000,              // 5 minutes
+  running: 5 * 60 * 1000,              // 5 minutes
+  eating: 15 * 60 * 1000               // 15 minutes
+};
+
+// CO2 alert cooldown (prevent alert spam)
+let lastCO2SpikeTime = 0;
+const CO2_SPIKE_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+
+// Breathing alert cooldown (prevent alert spam)
+let lastBreathingAlertTime = 0;
+const BREATHING_ALERT_COOLDOWN = 3 * 60 * 1000; // 3 minutes between alerts
 
 /* ---------- ACTIVITY DETECTION ---------- */
 function detectActivity(hr, breathing, accelX, accelY, accelZ) {
@@ -72,16 +97,51 @@ function detectActivity(hr, breathing, accelX, accelY, accelZ) {
 /* ---------- CONTEXT-AWARE THRESHOLDS ---------- */
 function getSafeRanges(activity) {
   const ranges = {
-    sleeping: { hr: { min: 40, max: 65 }, breathing: { min: 10, max: 18 }, temp: { min: 96.5, max: 98.5 } },
-    resting: { hr: { min: 55, max: 80 }, breathing: { min: 14, max: 20 }, temp: { min: 97, max: 99 } },
-    walking: { hr: { min: 75, max: 110 }, breathing: { min: 18, max: 28 }, temp: { min: 97, max: 100 } },
-    exercising: { hr: { min: 90, max: 130 }, breathing: { min: 24, max: 36 }, temp: { min: 97, max: 101 } },
-    running: { hr: { min: 120, max: 150 }, breathing: { min: 32, max: 40 }, temp: { min: 97.5, max: 101.5 } },
-    showering: { hr: { min: 75, max: 100 }, breathing: { min: 16, max: 22 }, temp: { min: 97.5, max: 100.5 } }
+    sleeping: { hr: { min: 40, max: 65 }, breathing: { min: 8, max: 20 }, temp: { min: 96.5, max: 98.5 } },
+    resting: { hr: { min: 55, max: 80 }, breathing: { min: 12, max: 22 }, temp: { min: 97, max: 99 } },
+    walking: { hr: { min: 75, max: 110 }, breathing: { min: 16, max: 30 }, temp: { min: 97, max: 100 } },
+    exercising: { hr: { min: 90, max: 130 }, breathing: { min: 22, max: 38 }, temp: { min: 97, max: 101 } },
+    running: { hr: { min: 120, max: 150 }, breathing: { min: 30, max: 42 }, temp: { min: 97.5, max: 101.5 } },
+    showering: { hr: { min: 75, max: 100 }, breathing: { min: 14, max: 24 }, temp: { min: 97.5, max: 100.5 } }
   };
   
   return ranges[activity] || ranges.resting;
 }
+
+/* ---------- ACTIVITY STABILITY & CONFIRMATION ---------- */
+function updateActivityStatus(detectedActivity) {
+  // Check if detected activity matches current confirmed activity
+  if (detectedActivity === confirmedActivity) {
+    // Same activity, reset confirmation counter
+    activityConfirmationCount = 0;
+    return; // Don't change anything
+  }
+
+  // Different activity detected - increment confirmation counter
+  activityConfirmationCount++;
+
+  // Require multiple confirmations before changing activity
+  if (activityConfirmationCount < requiredConfirmations) {
+    return; // Not enough confirmations yet
+  }
+
+  // Check if enough time has passed since last activity change
+  const timeSinceLastChange = Date.now() - lastActivityChangeTime;
+  const minDurationForLastActivity = ACTIVITY_MIN_DURATIONS[confirmedActivity] || 5 * 60 * 1000;
+
+  if (timeSinceLastChange < minDurationForLastActivity) {
+    // Not enough time has passed - keep current activity
+    activityConfirmationCount = 0; // Reset counter
+    return;
+  }
+
+  // Enough confirmations AND enough time has passed - change activity
+  confirmedActivity = detectedActivity;
+  lastActivityChangeTime = Date.now();
+  activityConfirmationCount = 0;
+}
+
+
 
 function applyRefreshIntervals() {
   if (dataIntervalId) clearInterval(dataIntervalId);
@@ -442,7 +502,7 @@ function renderSavedPathsList() {
       <div>
         <strong>${path.name}</strong>
         <div style="font-size: 12px; color: #666; margin-top: 4px;">
-          ${path.coordinates.length} points • Created: ${new Date(path.createdAt).toLocaleDateString()}
+          ${path.coordinates.length} points ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ Created: ${new Date(path.createdAt).toLocaleDateString()}
         </div>
       </div>
       <button onclick="deleteSafePath(${index})" style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
@@ -460,14 +520,17 @@ async function fetchData() {
 
   // Detect current activity based on sensor data
   currentStatus = detectActivity(data.hr, data.breathing, data.accel.x, data.accel.y, data.accel.z);
+  
+  // Update stable activity (requires stability and minimum duration)
+  updateActivityStatus(currentStatus);
   updateStatusDisplay();
 
-  // Get context-aware thresholds
-  const ranges = getSafeRanges(currentStatus);
+  // Use CONFIRMED activity for safe ranges, not instant detection
+  const ranges = getSafeRanges(confirmedActivity);
 
   updateSensor("hr", data.hr, ranges.hr.min, ranges.hr.max, "bpm");
   updateSensor("breathing", data.breathing, ranges.breathing.min, ranges.breathing.max, "breaths/min");
-  updateSensor("temp", data.temp, ranges.temp.min, ranges.temp.max, "°F");
+  updateSensor("temp", data.temp, ranges.temp.min, ranges.temp.max, "Ãƒâ€šÃ‚Â°F");
 
   document.getElementById("accelValue").innerText =
     `X:${data.accel.x.toFixed(2)} Y:${data.accel.y.toFixed(2)} Z:${data.accel.z.toFixed(2)}`;
@@ -477,7 +540,7 @@ async function fetchData() {
 
   if (data.gps.lat !== null) {
     document.getElementById("gpsValue").innerText =
-      `${data.gps.lat.toFixed(5)}, ${data.gps.lon.toFixed(5)} (±${data.gps.accuracy}m)`;
+      `${data.gps.lat.toFixed(5)}, ${data.gps.lon.toFixed(5)} (Ãƒâ€šÃ‚Â±${data.gps.accuracy}m)`;
     marker.setLatLng([data.gps.lat, data.gps.lon]);
     map.setView([data.gps.lat, data.gps.lon], 15);
   }
@@ -571,15 +634,16 @@ function updateStatusDisplay() {
   if (!statusEl) return;
 
   const statusEmoji = {
-    sleeping: "😴",
-    resting: "🛋️",
-    eating: "🍽️",
-    walking: "🚶",
-    exercising: "🏃",
-    running: "🏃‍♂️",
-    showering: "🚿",
-    driving: "🚗",
-    unknown: "❓"
+    sleeping: "ÃƒÂ°Ã…Â¸Ã‹Å“Ã‚Â´",
+    resting: "ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂºÃ¢â‚¬Â¹ÃƒÂ¯Ã‚Â¸Ã‚Â",
+    eating: "ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â½ÃƒÂ¯Ã‚Â¸Ã‚Â",
+    walking: "ÃƒÂ°Ã…Â¸Ã…Â¡Ã‚Â¶",
+    exercising: "ÃƒÂ°Ã…Â¸Ã‚ÂÃ†â€™",
+    running: "ÃƒÂ°Ã…Â¸Ã‚ÂÃ†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â€žÂ¢Ã¢â‚¬Å¡ÃƒÂ¯Ã‚Â¸Ã‚Â",
+    showering: "ÃƒÂ°Ã…Â¸Ã…Â¡Ã‚Â¿",
+    driving: "ÃƒÂ°Ã…Â¸Ã…Â¡Ã¢â‚¬â€",
+    napping: "ÃƒÂ°Ã…Â¸Ã‹Å“Ã‚Â´",
+    unknown: "ÃƒÂ¢Ã‚ÂÃ¢â‚¬Å“"
   };
 
   const statusText = {
@@ -591,10 +655,12 @@ function updateStatusDisplay() {
     running: "Running",
     showering: "Showering",
     driving: "Driving",
+    napping: "Napping",
     unknown: "Unknown"
   };
 
-  statusEl.innerHTML = `${statusEmoji[currentStatus] || statusEmoji.unknown} ${statusText[currentStatus] || statusText.unknown}`;
+  // Use CONFIRMED activity (stable), not instant detection
+  statusEl.innerHTML = `${statusEmoji[confirmedActivity] || statusEmoji.unknown} ${statusText[confirmedActivity] || statusText.unknown}`;
 }
 
 function updateCO(ppm) {
@@ -603,27 +669,32 @@ function updateCO(ppm) {
 
   card.classList.remove("safe", "warning", "danger");
 
-  // Simple thresholds (ppm)
-  // 0–9: safe, 10–35: warning, >35: danger
-  if (ppm > 35) {
-    card.classList.add("danger");
-  } else if (ppm >= 10) {
-    card.classList.add("warning");
-  } else {
-    card.classList.add("safe");
+  // More lenient CO2 thresholds with 5-minute cooldown between alerts
+  let co2Status = "safe";
+  const now = Date.now();
+  
+  if (ppm > 50) {
+    co2Status = "danger";
+    lastCO2SpikeTime = now;
+  } else if (ppm > 15) {
+    // Only show warning if cooldown has passed since last spike
+    if (now - lastCO2SpikeTime > CO2_SPIKE_COOLDOWN) {
+      co2Status = "warning";
+      lastCO2SpikeTime = now;
+    } else {
+      co2Status = "safe";
+    }
   }
+
+  card.classList.add(co2Status);
 
   document.getElementById("coValue").innerText = `${ppm.toFixed(1)} ppm`;
 
-  // store history for modal + exports
   historyData.co.push({ time: new Date(), value: ppm });
   if (historyData.co.length > 1000) historyData.co.shift();
 
-  // keep your existing save strategy
-  // (don’t spam saves on every sample if your throttling exists elsewhere)
   saveData();
 }
-
 
 document.addEventListener("click", e => {
   const closeBtn = e.target.closest(".close");
@@ -671,24 +742,24 @@ function renderAlerts() {
         if (a.started_at) {
           const start = a.started_at * 1000;
           const seconds = Math.max(0, Math.floor((now - start) / 1000));
-          line += `<br>⏱️ Time fallen: ${seconds} seconds`;
+          line += `<br>ÃƒÂ¢Ã‚ÂÃ‚Â±ÃƒÂ¯Ã‚Â¸Ã‚Â Time fallen: ${seconds} seconds`;
         }
 
         if (a.coords) {
-          line += `<br>📍 ${a.coords.lat.toFixed(5)}, ${a.coords.lon.toFixed(5)}`;
+          line += `<br>ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â ${a.coords.lat.toFixed(5)}, ${a.coords.lon.toFixed(5)}`;
         }
       }
 
-      // 🔥 WATER SUBMERGENCE (ADDED)
+      // ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ‚Â¥ WATER SUBMERGENCE (ADDED)
       if (a.type === "WATER") {
         if (a.started_at) {
           const start = a.started_at * 1000;
           const seconds = Math.max(0, Math.floor((now - start) / 1000));
-          line += `<br>⏱️ Time submerged: ${seconds} seconds`;
+          line += `<br>ÃƒÂ¢Ã‚ÂÃ‚Â±ÃƒÂ¯Ã‚Â¸Ã‚Â Time submerged: ${seconds} seconds`;
         }
 
         if (a.coords) {
-          line += `<br>📍 ${a.coords.lat.toFixed(5)}, ${a.coords.lon.toFixed(5)}`;
+          line += `<br>ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â ${a.coords.lat.toFixed(5)}, ${a.coords.lon.toFixed(5)}`;
         }
       }
 
@@ -699,7 +770,7 @@ function renderAlerts() {
       <div class="alert">
         <div class="alert-title">${title}</div>
         <div class="alert-meta">${times}</div>
-        <span class="close" data-msg="${encodeURIComponent(type)}">✕</span>
+        <span class="close" data-msg="${encodeURIComponent(type)}">ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢</span>
       </div>`;
   });
 }
