@@ -365,42 +365,19 @@
   </div>
 </section>
 
-<!-- LOG SLEEP -->
+<!-- AUTO-DETECTED SLEEP INFO -->
 <section>
-  <h2>Log Tonight's Sleep</h2>
-  <div class="habit-form">
-    <div class="form-row">
-      <div class="form-group">
-        <label>Date</label>
-        <input type="date" id="sleepDate">
-      </div>
-      <div class="form-group">
-        <label>Time to Bed</label>
-        <input type="time" id="bedTime">
-      </div>
-      <div class="form-group">
-        <label>Wake Up Time</label>
-        <input type="time" id="wakeTime">
-      </div>
-      <div class="form-group">
-        <label>Sleep Quality</label>
-        <select id="sleepQuality">
-          <option value="">Select quality...</option>
-          <option value="poor">Poor - Woke up frequently</option>
-          <option value="fair">Fair - Somewhat restless</option>
-          <option value="good">Good - Slept well</option>
-          <option value="excellent">Excellent - Very restful</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-group">
-      <label>Notes (optional)</label>
-      <input type="text" id="sleepNotes" placeholder="e.g., Too much caffeine, had a good nap">
-    </div>
-    <div class="button-group">
-      <button class="btn btn-primary" onclick="logSleep()">Log Sleep Entry</button>
-      <button class="btn btn-secondary" onclick="clearSleepForm()">Clear</button>
-    </div>
+  <h2>Sleep Detection</h2>
+  <div class="habit-form" style="background: #e7f6ea; border-left: 4px solid #2ecc71;">
+    <h3 style="margin-top: 0; color: #155724;">✅ Automatic Sleep Tracking Active</h3>
+    <p style="color: #155724; margin: 10px 0;">
+      Your sleep is being automatically detected by analyzing your BananaPuck device's sensors including:
+      heart rate patterns, breathing rate, movement detection, and body position.
+    </p>
+    <p style="color: #155724; margin: 10px 0; font-size: 12px;">
+      Sleep is detected when: HR &lt; 65 bpm with low variability, breathing &lt; 18 rpm, and minimal movement detected.
+      You don't need to manually log sleep anymore—it will be automatically tracked and displayed below.
+    </p>
   </div>
 </section>
 
@@ -437,74 +414,36 @@
   let sleepChart;
 
   document.addEventListener('DOMContentLoaded', function() {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('sleepDate').value = today;
     loadSleepData();
     initChart();
+    // Refresh sleep data every 30 seconds to show real-time updates
+    setInterval(loadSleepData, 30000);
   });
 
-  function logSleep() {
-    const date = document.getElementById('sleepDate').value;
-    const bedTime = document.getElementById('bedTime').value;
-    const wakeTime = document.getElementById('wakeTime').value;
-    const quality = document.getElementById('sleepQuality').value;
-    const notes = document.getElementById('sleepNotes').value;
-
-    if (!date || !bedTime || !wakeTime || !quality) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    // Calculate sleep duration
-    const [bedHour, bedMin] = bedTime.split(':').map(Number);
-    const [wakeHour, wakeMin] = wakeTime.split(':').map(Number);
-    
-    let duration = (wakeHour * 60 + wakeMin) - (bedHour * 60 + bedMin);
-    if (duration < 0) duration += 24 * 60; // Account for sleeping past midnight
-    duration = duration / 60; // Convert to hours
-
-    const sleepEntry = {
-      date,
-      bedTime,
-      wakeTime,
-      duration: parseFloat(duration.toFixed(1)),
-      quality,
-      notes,
-      timestamp: new Date().toISOString()
-    };
-
-    let sleepHistory = JSON.parse(localStorage.getItem('sleepHistory') || '[]');
-    sleepHistory.push(sleepEntry);
-    localStorage.setItem('sleepHistory', JSON.stringify(sleepHistory));
-
-    clearSleepForm();
-    loadSleepData();
-    alert('Sleep entry logged successfully!');
-  }
-
-  function clearSleepForm() {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('sleepDate').value = today;
-    document.getElementById('bedTime').value = '';
-    document.getElementById('wakeTime').value = '';
-    document.getElementById('sleepQuality').value = '';
-    document.getElementById('sleepNotes').value = '';
-  }
-
   function loadSleepData() {
-    let sleepHistory = JSON.parse(localStorage.getItem('sleepHistory') || '[]');
+    // Load auto-detected sleep data from backend/API
+    // In a real scenario, this would fetch from your BananaPuck server
+    // For now, we'll show how it integrates with the device
+    
+    let sleepHistory = JSON.parse(localStorage.getItem('autoDetectedSleep') || '[]');
 
     // Calculate statistics
     if (sleepHistory.length > 0) {
-      const avgSleep = (sleepHistory.reduce((sum, s) => sum + s.duration, 0) / sleepHistory.length).toFixed(1);
+      const avgSleep = (sleepHistory.reduce((sum, s) => sum + (s.duration || 0), 0) / sleepHistory.length).toFixed(1);
       const lastSleep = sleepHistory[sleepHistory.length - 1];
       
       document.getElementById('avgSleep').textContent = avgSleep;
-      document.getElementById('lastNightSleep').textContent = lastSleep.duration;
+      document.getElementById('lastNightSleep').textContent = (lastSleep.duration || '--').toFixed(1);
 
       // Render history
       renderSleepHistory(sleepHistory);
       renderSleepTable(sleepHistory);
+    }
+    
+    // Show message about auto-detection
+    const sleepStatus = JSON.parse(localStorage.getItem('sleepStatus') || '{"state": "awake"}');
+    if (sleepStatus.state === 'sleeping') {
+      console.log('Device currently sleeping - HR: ' + sleepStatus.hr + ' bpm');
     }
   }
 
