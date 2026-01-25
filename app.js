@@ -27,6 +27,62 @@ let currentPathPoints = [];
 let currentPathPolyline = null;
 let isDrawing = false;
 
+// Current status and sensor values
+let currentStatus = "unknown";
+let lastSensorData = {
+  hr: 0,
+  breathing: 0,
+  temp: 0,
+  accel_mag: 0
+};
+
+/* ---------- ACTIVITY DETECTION ---------- */
+function detectActivity(hr, breathing, accelX, accelY, accelZ) {
+  // Calculate acceleration magnitude (gravity-adjusted)
+  const accelMag = Math.sqrt(accelX * accelX + accelY * accelY + (accelZ - 9.81) * (accelZ - 9.81));
+  lastSensorData = { hr, breathing, accel_mag: accelMag };
+
+  // Detect activity based on vital signs and motion
+  if (hr < 65 && breathing < 18 && accelMag < 0.5) {
+    return "sleeping";
+  } else if (accelMag > 3) {
+    // High movement
+    if (hr > 110) {
+      return "running";
+    } else if (hr > 90) {
+      return "exercising";
+    }
+    return "walking";
+  } else if (accelMag > 1.5 && hr > 75 && breathing > 18) {
+    // Moderate movement with elevated vitals
+    return "exercising";
+  } else if (accelMag > 0.8) {
+    return "walking";
+  } else if (hr > 110) {
+    return "exercising";
+  } else if (hr > 85 && breathing > 18) {
+    // Could be exercising, showering, or active
+    if (accelMag > 0.5) return "exercising";
+    return "showering";
+  }
+  
+  return "resting";
+}
+
+/* ---------- CONTEXT-AWARE THRESHOLDS ---------- */
+function getSafeRanges(activity) {
+  const ranges = {
+    sleeping: { hr: { min: 40, max: 65 }, breathing: { min: 10, max: 18 }, temp: { min: 96.5, max: 98.5 } },
+    resting: { hr: { min: 55, max: 80 }, breathing: { min: 14, max: 20 }, temp: { min: 97, max: 99 } },
+    walking: { hr: { min: 75, max: 110 }, breathing: { min: 18, max: 28 }, temp: { min: 97, max: 100 } },
+    exercising: { hr: { min: 90, max: 130 }, breathing: { min: 24, max: 36 }, temp: { min: 97, max: 101 } },
+    running: { hr: { min: 120, max: 150 }, breathing: { min: 32, max: 40 }, temp: { min: 97.5, max: 101.5 } },
+    showering: { hr: { min: 75, max: 100 }, breathing: { min: 16, max: 22 }, temp: { min: 97.5, max: 100.5 } }
+  };
+  
+  return ranges[activity] || ranges.resting;
+}
+
 function applyRefreshIntervals() {
   if (dataIntervalId) clearInterval(dataIntervalId);
   if (alertsIntervalId) clearInterval(alertsIntervalId);
@@ -402,9 +458,16 @@ async function fetchData() {
   const res = await fetch(API);
   const data = await res.json();
 
-  updateSensor("hr", data.hr, 60, 100, "bpm");
-  updateSensor("breathing", data.breathing, 10, 20, "breaths/min");
-  updateSensor("temp", data.temp, 97, 99.5, "°F");
+  // Detect current activity based on sensor data
+  currentStatus = detectActivity(data.hr, data.breathing, data.accel.x, data.accel.y, data.accel.z);
+  updateStatusDisplay();
+
+  // Get context-aware thresholds
+  const ranges = getSafeRanges(currentStatus);
+
+  updateSensor("hr", data.hr, ranges.hr.min, ranges.hr.max, "bpm");
+  updateSensor("breathing", data.breathing, ranges.breathing.min, ranges.breathing.max, "breaths/min");
+  updateSensor("temp", data.temp, ranges.temp.min, ranges.temp.max, "°F");
 
   document.getElementById("accelValue").innerText =
     `X:${data.accel.x.toFixed(2)} Y:${data.accel.y.toFixed(2)} Z:${data.accel.z.toFixed(2)}`;
@@ -473,6 +536,7 @@ function updateSensor(key, value, min, max, unit) {
 
   card.classList.remove("safe", "warning", "danger");
 
+  // Context-aware thresholds: danger zone is outside [min-5, max+5] for the current activity
   if (value < min - 5 || value > max + 5) {
     card.classList.add("danger");
   } else if (value < min || value > max) {
@@ -500,6 +564,37 @@ function updateSensor(key, value, min, max, unit) {
   }
 
   throttledSave();
+}
+
+function updateStatusDisplay() {
+  const statusEl = document.getElementById("statusValue");
+  if (!statusEl) return;
+
+  const statusEmoji = {
+    sleeping: "😴",
+    resting: "🛋️",
+    eating: "🍽️",
+    walking: "🚶",
+    exercising: "🏃",
+    running: "🏃‍♂️",
+    showering: "🚿",
+    driving: "🚗",
+    unknown: "❓"
+  };
+
+  const statusText = {
+    sleeping: "Sleeping",
+    resting: "Resting",
+    eating: "Eating",
+    walking: "Walking",
+    exercising: "Exercising",
+    running: "Running",
+    showering: "Showering",
+    driving: "Driving",
+    unknown: "Unknown"
+  };
+
+  statusEl.innerHTML = `${statusEmoji[currentStatus] || statusEmoji.unknown} ${statusText[currentStatus] || statusText.unknown}`;
 }
 
 function updateCO(ppm) {
