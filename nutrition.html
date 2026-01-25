@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BananaPuck Nutrition Tracker</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BananaPuck">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+    }
+
+    header {
+      background: #f5c400;
+      color: white;
+      text-align: center;
+      padding: 32px 10px;
+      font-size: 38px;
+      font-weight: bold;
+    }
+
+    .top-controls {
+      padding: 15px 25px;
+      background: white;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #555;
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .settings-btn:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    section {
+      padding: 25px;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+      color: #333;
+      font-size: 22px;
+      border-bottom: 2px solid #f5c400;
+      padding-bottom: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .card-title {
+      font-weight: bold;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .card-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #f5c400;
+      margin-bottom: 5px;
+    }
+
+    .card-label {
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+
+    .habit-form {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="time"],
+    .form-group input[type="date"],
+    .form-group input[type="number"],
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #f5c400;
+      box-shadow: 0 0 0 3px rgba(245, 196, 0, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #f5c400;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #d4a700;
+    }
+
+    .btn-secondary {
+      background: #ecf0f1;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #dde1e6;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+      background: #e74c3c;
+      color: white;
+    }
+
+    .btn-small:hover {
+      background: #c0392b;
+    }
+
+    .meal-list {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .meal-item {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .meal-item:last-child {
+      border-bottom: none;
+    }
+
+    .meal-info {
+      flex: 1;
+    }
+
+    .meal-type {
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 5px;
+    }
+
+    .meal-items {
+      font-size: 12px;
+      color: #7f8c8d;
+      margin-bottom: 3px;
+    }
+
+    .meal-meta {
+      font-size: 11px;
+      color: #95a5a6;
+    }
+
+    .healthiness-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .health-unhealthy {
+      background: #fdeaea;
+      color: #c0392b;
+    }
+
+    .health-moderate {
+      background: #fff6d8;
+      color: #856404;
+    }
+
+    .health-healthy {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin: 20px 0;
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .tab-btn {
+      padding: 12px 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-weight: bold;
+      color: #7f8c8d;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      color: #f5c400;
+      border-bottom-color: #f5c400;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #f5f5f5;
+      font-weight: bold;
+    }
+
+    tr:hover {
+      background: #f9f9f9;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  🍎 Nutrition Tracker
+</header>
+
+<div class="top-controls">
+  <div class="page-title">Track Your Meals & Hydration</div>
+  <div class="control-buttons">
+    <button class="settings-btn" onclick="window.location.href='index.html'" title="Back to Dashboard">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21H18C18.5523 21 19 20.5523 19 20V10M19 10L21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 21V12M15 21V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button class="settings-btn" onclick="window.location.href='settings.html'" title="Settings">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 8.5A3.5 3.5 0 1 0 12 15.5A3.5 3.5 0 1 0 12 8.5Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M19.4 15A1.7 1.7 0 0 0 19.7 16.9L19.8 17.1A2 2 0 1 1 17.1 19.8L16.9 19.7A1.7 1.7 0 0 0 15 19.4 A1.7 1.7 0 0 0 14 20.9V21A2 2 0 1 1 10 21V20.9 A1.7 1.7 0 0 0 9 19.4 A1.7 1.7 0 0 0 7.1 19.7L6.9 19.8 A2 2 0 1 1 4.2 17.1L4.3 16.9 A1.7 1.7 0 0 0 4.6 15 A1.7 1.7 0 0 0 3.1 14H3 A2 2 0 1 1 3 10H3.1 A1.7 1.7 0 0 0 4.6 9 A1.7 1.7 0 0 0 4.3 7.1L4.2 6.9 A2 2 0 1 1 6.9 4.2L7.1 4.3 A1.7 1.7 0 0 0 9 4.6 A1.7 1.7 0 0 0 10 3.1V3 A2 2 0 1 1 14 3V3.1 A1.7 1.7 0 0 0 15 4.6 A1.7 1.7 0 0 0 16.9 4.3L17.1 4.2 A2 2 0 1 1 19.8 6.9L19.7 7.1 A1.7 1.7 0 0 0 19.4 9 A1.7 1.7 0 0 0 20.9 10H21 A2 2 0 1 1 21 14H20.9 A1.7 1.7 0 0 0 19.4 15Z" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- STATS -->
+<section>
+  <h2>Today's Nutrition Summary</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">Meals Logged</div>
+      <div class="card-value" id="mealsCount">0</div>
+      <div class="card-label">meals today</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Water Intake</div>
+      <div class="card-value" id="waterCount">0</div>
+      <div class="card-label">cups today</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Total Calories</div>
+      <div class="card-value" id="totalCalories">0</div>
+      <div class="card-label">kcal</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Healthy Choice %</div>
+      <div class="card-value" id="healthyPercent">0%</div>
+      <div class="card-label">today</div>
+    </div>
+  </div>
+</section>
+
+<!-- LOG MEAL -->
+<section>
+  <h2>Log a Meal</h2>
+  <div class="habit-form">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Meal Type</label>
+        <select id="mealType">
+          <option value="">Select meal type...</option>
+          <option value="breakfast">🌅 Breakfast</option>
+          <option value="lunch">☀️ Lunch</option>
+          <option value="dinner">🌙 Dinner</option>
+          <option value="snack">🍿 Snack</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Time</label>
+        <input type="time" id="mealTime">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Food Items</label>
+      <input type="text" id="foodItems" placeholder="e.g., Grilled chicken, rice, broccoli">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Calories (optional)</label>
+        <input type="number" id="calories" placeholder="e.g., 600" min="0">
+      </div>
+      <div class="form-group">
+        <label>Healthiness Level</label>
+        <select id="mealHealthiness">
+          <option value="">Select...</option>
+          <option value="unhealthy">❌ Unhealthy</option>
+          <option value="moderate">⚠️ Moderate</option>
+          <option value="healthy">✅ Healthy</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="logMeal()">Log Meal</button>
+      <button class="btn btn-secondary" onclick="clearMealForm()">Clear</button>
+    </div>
+  </div>
+</section>
+
+<!-- LOG WATER -->
+<section>
+  <h2>Log Water Intake</h2>
+  <div class="habit-form">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Cups of Water</label>
+        <input type="number" id="waterCups" placeholder="e.g., 1" min="1" max="20">
+      </div>
+      <div class="form-group">
+        <label>Time</label>
+        <input type="time" id="waterTime">
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="logWater()">Log Water</button>
+    </div>
+  </div>
+</section>
+
+<!-- MEALS TODAY -->
+<section>
+  <h2>Today's Meals</h2>
+  <div class="meal-list" id="todayMeals">
+    <div class="meal-item">
+      <div class="meal-info">
+        <div class="meal-type">No meals logged yet</div>
+        <div class="meal-meta">Start logging your meals to see them here</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WATER LOG -->
+<section>
+  <h2>Water Log - Today</h2>
+  <div class="meal-list" id="todayWater">
+    <div class="meal-item">
+      <div class="meal-info">
+        <div class="meal-type">No water logged yet</div>
+        <div class="meal-meta">Track your hydration throughout the day</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WEEKLY CHART -->
+<section>
+  <h2>Weekly Calorie Trend</h2>
+  <div class="chart-container">
+    <canvas id="calorieChart"></canvas>
+  </div>
+</section>
+
+<!-- MEAL HISTORY -->
+<section>
+  <h2>Meal History</h2>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('recent')">Recent</button>
+    <button class="tab-btn" onclick="switchTab('all')">Full History</button>
+  </div>
+
+  <div id="recent">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Type</th>
+          <th>Food Items</th>
+          <th>Calories</th>
+          <th>Health</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="recentTable"></tbody>
+    </table>
+  </div>
+
+  <div id="all" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Type</th>
+          <th>Food Items</th>
+          <th>Calories</th>
+          <th>Health</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="allTable"></tbody>
+    </table>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  let calorieChart;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    document.getElementById('mealTime').value = now.toTimeString().slice(0,5);
+    document.getElementById('waterTime').value = now.toTimeString().slice(0,5);
+    loadNutritionData();
+    initChart();
+  });
+
+  function logMeal() {
+    const mealType = document.getElementById('mealType').value;
+    const mealTime = document.getElementById('mealTime').value;
+    const foodItems = document.getElementById('foodItems').value;
+    const calories = document.getElementById('calories').value;
+    const healthiness = document.getElementById('mealHealthiness').value;
+
+    if (!mealType || !foodItems || !healthiness) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const mealData = {
+      date: new Date().toISOString().split('T')[0],
+      time: mealTime,
+      type: mealType,
+      foods: foodItems,
+      calories: calories ? parseInt(calories) : 0,
+      healthiness: healthiness,
+      timestamp: new Date().toISOString()
+    };
+
+    let meals = JSON.parse(localStorage.getItem('meals') || '[]');
+    meals.push(mealData);
+    localStorage.setItem('meals', JSON.stringify(meals));
+
+    clearMealForm();
+    loadNutritionData();
+    alert('Meal logged successfully!');
+  }
+
+  function clearMealForm() {
+    document.getElementById('mealType').value = '';
+    document.getElementById('foodItems').value = '';
+    document.getElementById('calories').value = '';
+    document.getElementById('mealHealthiness').value = '';
+    const now = new Date();
+    document.getElementById('mealTime').value = now.toTimeString().slice(0,5);
+  }
+
+  function logWater() {
+    const cups = document.getElementById('waterCups').value;
+    const time = document.getElementById('waterTime').value;
+
+    if (!cups || cups < 1) {
+      alert('Please enter a valid number of cups');
+      return;
+    }
+
+    const waterData = {
+      date: new Date().toISOString().split('T')[0],
+      time: time,
+      cups: parseInt(cups),
+      timestamp: new Date().toISOString()
+    };
+
+    let waterLog = JSON.parse(localStorage.getItem('waterLog') || '[]');
+    waterLog.push(waterData);
+    localStorage.setItem('waterLog', JSON.stringify(waterLog));
+
+    document.getElementById('waterCups').value = '';
+    loadNutritionData();
+    alert(`${cups} cups of water logged!`);
+  }
+
+  function loadNutritionData() {
+    const today = new Date().toISOString().split('T')[0];
+    let meals = JSON.parse(localStorage.getItem('meals') || '[]');
+    let waterLog = JSON.parse(localStorage.getItem('waterLog') || '[]');
+
+    const todayMeals = meals.filter(m => m.date === today);
+    const todayWater = waterLog.filter(w => w.date === today);
+
+    // Calculate stats
+    const mealsCount = todayMeals.length;
+    const waterCount = todayWater.reduce((sum, w) => sum + w.cups, 0);
+    const totalCals = todayMeals.reduce((sum, m) => sum + m.calories, 0);
+    const healthyMeals = todayMeals.filter(m => m.healthiness === 'healthy').length;
+    const healthyPercent = mealsCount > 0 ? Math.round((healthyMeals / mealsCount) * 100) : 0;
+
+    document.getElementById('mealsCount').textContent = mealsCount;
+    document.getElementById('waterCount').textContent = waterCount;
+    document.getElementById('totalCalories').textContent = totalCals;
+    document.getElementById('healthyPercent').textContent = healthyPercent + '%';
+
+    renderTodayMeals(todayMeals);
+    renderTodayWater(todayWater);
+    renderMealHistory(meals);
+  }
+
+  function renderTodayMeals(todayMeals) {
+    let html = '';
+    if (todayMeals.length === 0) {
+      html = '<div class="meal-item"><div class="meal-info"><div class="meal-type">No meals logged yet</div></div></div>';
+    } else {
+      todayMeals.sort((a, b) => a.time.localeCompare(b.time)).forEach(meal => {
+        const healthClass = `health-${meal.healthiness}`;
+        html += `
+          <div class="meal-item">
+            <div class="meal-info">
+              <div class="meal-type">${meal.type.charAt(0).toUpperCase() + meal.type.slice(1)} at ${meal.time}</div>
+              <div class="meal-items">${meal.foods}</div>
+              <div class="meal-meta">${meal.calories ? meal.calories + ' kcal' : 'No calorie info'}</div>
+            </div>
+            <span class="healthiness-badge ${healthClass}">${meal.healthiness.charAt(0).toUpperCase() + meal.healthiness.slice(1)}</span>
+          </div>
+        `;
+      });
+    }
+    document.getElementById('todayMeals').innerHTML = html;
+  }
+
+  function renderTodayWater(todayWater) {
+    let html = '';
+    if (todayWater.length === 0) {
+      html = '<div class="meal-item"><div class="meal-info"><div class="meal-type">No water logged yet</div><div class="meal-meta">Track your hydration throughout the day</div></div></div>';
+    } else {
+      todayWater.sort((a, b) => a.time.localeCompare(b.time)).forEach(water => {
+        html += `
+          <div class="meal-item">
+            <div class="meal-info">
+              <div class="meal-type">💧 ${water.cups} cup${water.cups > 1 ? 's' : ''} at ${water.time}</div>
+              <div class="meal-meta">Total today: ${todayWater.reduce((s, w) => s + w.cups, 0)} cups</div>
+            </div>
+            <button class="btn-small" onclick="deleteWater('${water.timestamp}')">Delete</button>
+          </div>
+        `;
+      });
+    }
+    document.getElementById('todayWater').innerHTML = html;
+  }
+
+  function renderMealHistory(meals) {
+    let html = '';
+    meals.slice().reverse().slice(0, 20).forEach(meal => {
+      html += `
+        <tr>
+          <td>${new Date(meal.date).toLocaleDateString()}</td>
+          <td>${meal.time}</td>
+          <td>${meal.type}</td>
+          <td>${meal.foods}</td>
+          <td>${meal.calories || '-'}</td>
+          <td>${meal.healthiness}</td>
+          <td><button class="btn-small" onclick="deleteMeal('${meal.timestamp}')">Delete</button></td>
+        </tr>
+      `;
+    });
+    document.getElementById('recentTable').innerHTML = html;
+
+    let allHtml = '';
+    meals.slice().reverse().forEach(meal => {
+      allHtml += `
+        <tr>
+          <td>${new Date(meal.date).toLocaleDateString()}</td>
+          <td>${meal.time}</td>
+          <td>${meal.type}</td>
+          <td>${meal.foods}</td>
+          <td>${meal.calories || '-'}</td>
+          <td>${meal.healthiness}</td>
+          <td><button class="btn-small" onclick="deleteMeal('${meal.timestamp}')">Delete</button></td>
+        </tr>
+      `;
+    });
+    document.getElementById('allTable').innerHTML = allHtml;
+  }
+
+  function deleteMeal(timestamp) {
+    if (confirm('Delete this meal entry?')) {
+      let meals = JSON.parse(localStorage.getItem('meals') || '[]');
+      meals = meals.filter(m => m.timestamp !== timestamp);
+      localStorage.setItem('meals', JSON.stringify(meals));
+      loadNutritionData();
+    }
+  }
+
+  function deleteWater(timestamp) {
+    if (confirm('Delete this water entry?')) {
+      let waterLog = JSON.parse(localStorage.getItem('waterLog') || '[]');
+      waterLog = waterLog.filter(w => w.timestamp !== timestamp);
+      localStorage.setItem('waterLog', JSON.stringify(waterLog));
+      loadNutritionData();
+    }
+  }
+
+  function switchTab(tab) {
+    document.getElementById('recent').style.display = tab === 'recent' ? 'block' : 'none';
+    document.getElementById('all').style.display = tab === 'all' ? 'block' : 'none';
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+
+  function initChart() {
+    let meals = JSON.parse(localStorage.getItem('meals') || '[]');
+    
+    const last7Days = getLast7DaysCalories(meals);
+    
+    const ctx = document.getElementById('calorieChart').getContext('2d');
+    calorieChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: last7Days.dates,
+        datasets: [{
+          label: 'Calories',
+          data: last7Days.calories,
+          backgroundColor: '#f5c400',
+          borderColor: '#d4a700',
+          borderWidth: 2,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              suffix: ' kcal'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function getLast7DaysCalories(meals) {
+    const dates = [];
+    const calories = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = date.toLocaleDateString('en-US', {weekday: 'short'});
+
+      const dayMeals = meals.filter(m => m.date === dateStr);
+      const dayCals = dayMeals.reduce((sum, m) => sum + m.calories, 0);
+      
+      dates.push(dayName);
+      calories.push(dayCals);
+    }
+
+    return { dates, calories };
+  }
+</script>
+
+</body>
+</html>

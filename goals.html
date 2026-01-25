@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BananaPuck Daily Goals</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BananaPuck">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+    }
+
+    header {
+      background: #f5c400;
+      color: white;
+      text-align: center;
+      padding: 32px 10px;
+      font-size: 38px;
+      font-weight: bold;
+    }
+
+    .top-controls {
+      padding: 15px 25px;
+      background: white;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #555;
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .settings-btn:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    section {
+      padding: 25px;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+      color: #333;
+      font-size: 22px;
+      border-bottom: 2px solid #f5c400;
+      padding-bottom: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .card-title {
+      font-weight: bold;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .card-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #f5c400;
+      margin-bottom: 5px;
+    }
+
+    .card-label {
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+
+    .habit-form {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="time"],
+    .form-group input[type="date"],
+    .form-group input[type="number"],
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    .form-group textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #f5c400;
+      box-shadow: 0 0 0 3px rgba(245, 196, 0, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #f5c400;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #d4a700;
+    }
+
+    .btn-secondary {
+      background: #ecf0f1;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #dde1e6;
+    }
+
+    .goals-list {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .goal-item {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .goal-item:last-child {
+      border-bottom: none;
+    }
+
+    .goal-info {
+      flex: 1;
+    }
+
+    .goal-title {
+      font-weight: bold;
+      color: #2c3e50;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+
+    .goal-frequency {
+      font-size: 12px;
+      color: #7f8c8d;
+      margin-bottom: 5px;
+    }
+
+    .goal-description {
+      font-size: 12px;
+      color: #95a5a6;
+      font-style: italic;
+      margin-bottom: 8px;
+    }
+
+    .goal-progress {
+      font-size: 11px;
+      color: #555;
+    }
+
+    .completion-info {
+      text-align: right;
+      margin-left: 15px;
+    }
+
+    .completion-badge {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .completed-today {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .not-completed {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .partial {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 5px;
+      margin-top: 5px;
+    }
+
+    .btn-small {
+      padding: 6px 10px;
+      font-size: 11px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-check {
+      background: #2ecc71;
+      color: white;
+    }
+
+    .btn-check:hover {
+      background: #27ae60;
+    }
+
+    .btn-delete {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .btn-delete:hover {
+      background: #c0392b;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      background: white;
+      border-radius: 14px;
+      padding: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: bold;
+      color: #f5c400;
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .tab-btn {
+      padding: 12px 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-weight: bold;
+      color: #7f8c8d;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      color: #f5c400;
+      border-bottom-color: #f5c400;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #7f8c8d;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .frequency-icon {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #f0f0f0;
+      border-radius: 12px;
+      font-size: 11px;
+      color: #555;
+      margin-right: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  🎯 Daily Goals & Habits
+</header>
+
+<div class="top-controls">
+  <div class="page-title">Set & Track Your Goals</div>
+  <div class="control-buttons">
+    <button class="settings-btn" onclick="window.location.href='index.html'" title="Back to Dashboard">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21H18C18.5523 21 19 20.5523 19 20V10M19 10L21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 21V12M15 21V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button class="settings-btn" onclick="window.location.href='settings.html'" title="Settings">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 8.5A3.5 3.5 0 1 0 12 15.5A3.5 3.5 0 1 0 12 8.5Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M19.4 15A1.7 1.7 0 0 0 19.7 16.9L19.8 17.1A2 2 0 1 1 17.1 19.8L16.9 19.7A1.7 1.7 0 0 0 15 19.4 A1.7 1.7 0 0 0 14 20.9V21A2 2 0 1 1 10 21V20.9 A1.7 1.7 0 0 0 9 19.4 A1.7 1.7 0 0 0 7.1 19.7L6.9 19.8 A2 2 0 1 1 4.2 17.1L4.3 16.9 A1.7 1.7 0 0 0 4.6 15 A1.7 1.7 0 0 0 3.1 14H3 A2 2 0 1 1 3 10H3.1 A1.7 1.7 0 0 0 4.6 9 A1.7 1.7 0 0 0 4.3 7.1L4.2 6.9 A2 2 0 1 1 6.9 4.2L7.1 4.3 A1.7 1.7 0 0 0 9 4.6 A1.7 1.7 0 0 0 10 3.1V3 A2 2 0 1 1 14 3V3.1 A1.7 1.7 0 0 0 15 4.6 A1.7 1.7 0 0 0 16.9 4.3L17.1 4.2 A2 2 0 1 1 19.8 6.9L19.7 7.1 A1.7 1.7 0 0 0 19.4 9 A1.7 1.7 0 0 0 20.9 10H21 A2 2 0 1 1 21 14H20.9 A1.7 1.7 0 0 0 19.4 15Z" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- TODAY'S STATS -->
+<section>
+  <h2>Today's Progress</h2>
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-number" id="goalsCount">0</div>
+      <div class="stat-label">Active Goals</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number" id="completedToday">0</div>
+      <div class="stat-label">Completed Today</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number" id="completionRate">0%</div>
+      <div class="stat-label">Completion Rate</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number" id="currentStreak">0</div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+  </div>
+</section>
+
+<!-- CREATE GOAL -->
+<section>
+  <h2>Add a New Goal</h2>
+  <div class="habit-form">
+    <div class="form-group">
+      <label>Goal Name</label>
+      <input type="text" id="goalName" placeholder="e.g., Read for 30 minutes, Learn something new, Practice coding">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Frequency</label>
+        <select id="goalFrequency">
+          <option value="">Select frequency...</option>
+          <option value="daily">Daily</option>
+          <option value="weekdays">Weekdays (Mon-Fri)</option>
+          <option value="weekends">Weekends</option>
+          <option value="3x-week">3x per Week</option>
+          <option value="2x-week">2x per Week</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Target (optional)</label>
+        <input type="text" id="goalTarget" placeholder="e.g., 30 minutes, 5 miles, 10 pages">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Description (optional)</label>
+      <textarea id="goalDescription" placeholder="Why is this goal important? Any details or tips?"></textarea>
+    </div>
+
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="addGoal()">Add Goal</button>
+      <button class="btn btn-secondary" onclick="clearGoalForm()">Clear</button>
+    </div>
+  </div>
+</section>
+
+<!-- GOALS TABS -->
+<section>
+  <h2>Your Goals</h2>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('today')">Today</button>
+    <button class="tab-btn" onclick="switchTab('all')">All Goals</button>
+    <button class="tab-btn" onclick="switchTab('completed')">Completed</button>
+  </div>
+
+  <!-- TODAY'S GOALS -->
+  <div id="today" class="tab-content" style="display: block;">
+    <div class="goals-list" id="todayGoals">
+      <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <p>No goals for today. Add a goal or wait for the next scheduled date!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALL GOALS -->
+  <div id="all" class="tab-content" style="display: none;">
+    <div class="goals-list" id="allGoals">
+      <div class="empty-state">
+        <div class="empty-state-icon">🎯</div>
+        <p>You haven't created any goals yet. Start by adding one above!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLETED GOALS -->
+  <div id="completed" class="tab-content" style="display: none;">
+    <div class="goals-list" id="completedGoals">
+      <div class="empty-state">
+        <div class="empty-state-icon">✅</div>
+        <p>No completed goals yet. Finish a goal to see it here!</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GOAL HISTORY -->
+<section>
+  <h2>Completion History</h2>
+  <div id="historyContainer" style="background: white; border-radius: 14px; padding: 20px; box-shadow: 0 6px 15px rgba(0,0,0,0.08);">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 2px solid #f5c400;">
+          <th style="text-align: left; padding: 10px; font-weight: bold;">Goal</th>
+          <th style="text-align: left; padding: 10px; font-weight: bold;">Date Completed</th>
+          <th style="text-align: left; padding: 10px; font-weight: bold;">Frequency</th>
+        </tr>
+      </thead>
+      <tbody id="historyBody">
+        <tr>
+          <td colspan="3" style="text-align: center; padding: 20px; color: #7f8c8d;">No completion history yet</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    loadGoalsData();
+  });
+
+  function addGoal() {
+    const goalName = document.getElementById('goalName').value;
+    const frequency = document.getElementById('goalFrequency').value;
+    const target = document.getElementById('goalTarget').value;
+    const description = document.getElementById('goalDescription').value;
+
+    if (!goalName || !frequency) {
+      alert('Please fill in goal name and frequency');
+      return;
+    }
+
+    const goalData = {
+      id: Date.now().toString(),
+      name: goalName,
+      frequency: frequency,
+      target: target,
+      description: description,
+      createdDate: new Date().toISOString(),
+      completions: []
+    };
+
+    let goals = JSON.parse(localStorage.getItem('goals') || '[]');
+    goals.push(goalData);
+    localStorage.setItem('goals', JSON.stringify(goals));
+
+    clearGoalForm();
+    loadGoalsData();
+    alert('Goal added successfully! 🎉');
+  }
+
+  function clearGoalForm() {
+    document.getElementById('goalName').value = '';
+    document.getElementById('goalFrequency').value = '';
+    document.getElementById('goalTarget').value = '';
+    document.getElementById('goalDescription').value = '';
+  }
+
+  function completeGoal(goalId) {
+    let goals = JSON.parse(localStorage.getItem('goals') || '[]');
+    const goal = goals.find(g => g.id === goalId);
+    
+    if (goal) {
+      const today = new Date().toISOString().split('T')[0];
+      if (!goal.completions) goal.completions = [];
+      
+      if (!goal.completions.includes(today)) {
+        goal.completions.push(today);
+        localStorage.setItem('goals', JSON.stringify(goals));
+        loadGoalsData();
+        alert('Great job! Goal completed! 🎉');
+      } else {
+        alert('You already completed this goal today!');
+      }
+    }
+  }
+
+  function deleteGoal(goalId) {
+    if (confirm('Delete this goal permanently?')) {
+      let goals = JSON.parse(localStorage.getItem('goals') || '[]');
+      goals = goals.filter(g => g.id !== goalId);
+      localStorage.setItem('goals', JSON.stringify(goals));
+      loadGoalsData();
+    }
+  }
+
+  function shouldShowToday(frequency) {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    
+    if (frequency === 'daily') return true;
+    if (frequency === 'weekdays') return dayOfWeek >= 1 && dayOfWeek <= 5;
+    if (frequency === 'weekends') return dayOfWeek === 0 || dayOfWeek === 6;
+    
+    return true;
+  }
+
+  function loadGoalsData() {
+    let goals = JSON.parse(localStorage.getItem('goals') || '[]');
+    const today = new Date().toISOString().split('T')[0];
+
+    // Update stats
+    const todayGoals = goals.filter(g => shouldShowToday(g.frequency));
+    const completedCount = todayGoals.filter(g => g.completions && g.completions.includes(today)).length;
+    const completionRate = todayGoals.length > 0 ? Math.round((completedCount / todayGoals.length) * 100) : 0;
+
+    document.getElementById('goalsCount').textContent = goals.length;
+    document.getElementById('completedToday').textContent = completedCount;
+    document.getElementById('completionRate').textContent = completionRate + '%';
+
+    renderTodayGoals(goals, today);
+    renderAllGoals(goals, today);
+    renderCompletedGoals(goals, today);
+    renderHistory(goals);
+  }
+
+  function renderTodayGoals(goals, today) {
+    let html = '';
+    const todayGoals = goals.filter(g => shouldShowToday(g.frequency));
+
+    if (todayGoals.length === 0) {
+      html = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No goals for today. Add a goal!</p></div>';
+    } else {
+      todayGoals.forEach(goal => {
+        const isCompleted = goal.completions && goal.completions.includes(today);
+        const badgeClass = isCompleted ? 'completed-today' : 'not-completed';
+        const badgeText = isCompleted ? '✅ Completed' : '⏳ Not Completed';
+
+        html += `
+          <div class="goal-item" style="${isCompleted ? 'opacity: 0.7;' : ''}">
+            <div class="goal-info">
+              <div class="goal-title">${goal.name}</div>
+              <div class="goal-frequency">
+                <span class="frequency-icon">${goal.frequency}</span>
+                ${goal.target ? '<span class="frequency-icon">Target: ' + goal.target + '</span>' : ''}
+              </div>
+              ${goal.description ? '<div class="goal-description">' + goal.description + '</div>' : ''}
+              <div class="goal-progress">Completed ${goal.completions ? goal.completions.length : 0} times</div>
+            </div>
+            <div class="completion-info">
+              <div class="completion-badge ${badgeClass}">${badgeText}</div>
+              <div class="action-buttons">
+                ${!isCompleted ? '<button class="btn-small btn-check" onclick="completeGoal(\'' + goal.id + '\')">✓ Complete</button>' : ''}
+                <button class="btn-small btn-delete" onclick="deleteGoal(\'' + goal.id + '\')">Delete</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+    document.getElementById('todayGoals').innerHTML = html;
+  }
+
+  function renderAllGoals(goals, today) {
+    let html = '';
+    if (goals.length === 0) {
+      html = '<div class="empty-state"><div class="empty-state-icon">🎯</div><p>No goals yet. Add one to get started!</p></div>';
+    } else {
+      goals.forEach(goal => {
+        const isCompleted = goal.completions && goal.completions.includes(today);
+        html += `
+          <div class="goal-item">
+            <div class="goal-info">
+              <div class="goal-title">${goal.name}</div>
+              <div class="goal-frequency">
+                <span class="frequency-icon">${goal.frequency}</span>
+                ${goal.target ? '<span class="frequency-icon">Target: ' + goal.target + '</span>' : ''}
+              </div>
+              ${goal.description ? '<div class="goal-description">' + goal.description + '</div>' : ''}
+              <div class="goal-progress">Completed ${goal.completions ? goal.completions.length : 0} times</div>
+            </div>
+            <div class="action-buttons" style="margin-left: 15px;">
+              ${!isCompleted ? '<button class="btn-small btn-check" onclick="completeGoal(\'' + goal.id + '\')">✓ Complete</button>' : ''}
+              <button class="btn-small btn-delete" onclick="deleteGoal(\'' + goal.id + '\')">Delete</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+    document.getElementById('allGoals').innerHTML = html;
+  }
+
+  function renderCompletedGoals(goals, today) {
+    let html = '';
+    const completedToday = goals.filter(g => g.completions && g.completions.includes(today));
+
+    if (completedToday.length === 0) {
+      html = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>No completed goals yet. Finish one to see it here!</p></div>';
+    } else {
+      completedToday.forEach(goal => {
+        html += `
+          <div class="goal-item" style="opacity: 0.8;">
+            <div class="goal-info">
+              <div class="goal-title" style="color: #27ae60;">✅ ${goal.name}</div>
+              <div class="goal-frequency">
+                <span class="frequency-icon">${goal.frequency}</span>
+                ${goal.target ? '<span class="frequency-icon">Target: ' + goal.target + '</span>' : ''}
+              </div>
+              <div class="goal-progress">Total completions: ${goal.completions.length}</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+    document.getElementById('completedGoals').innerHTML = html;
+  }
+
+  function renderHistory(goals) {
+    let html = '';
+    let allCompletions = [];
+
+    goals.forEach(goal => {
+      if (goal.completions) {
+        goal.completions.forEach(date => {
+          allCompletions.push({
+            goalName: goal.name,
+            date: date,
+            frequency: goal.frequency
+          });
+        });
+      }
+    });
+
+    if (allCompletions.length === 0) {
+      html = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #7f8c8d;">No completion history yet</td></tr>';
+    } else {
+      allCompletions.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 50).forEach(completion => {
+        html += `
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px; color: #2c3e50; font-weight: 500;">${completion.goalName}</td>
+            <td style="padding: 10px; color: #7f8c8d;">${new Date(completion.date).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'})}</td>
+            <td style="padding: 10px; color: #95a5a6; font-size: 12px;">${completion.frequency}</td>
+          </tr>
+        `;
+      });
+    }
+    document.getElementById('historyBody').innerHTML = html;
+  }
+
+  function switchTab(tab) {
+    document.getElementById('today').style.display = tab === 'today' ? 'block' : 'none';
+    document.getElementById('all').style.display = tab === 'all' ? 'block' : 'none';
+    document.getElementById('completed').style.display = tab === 'completed' ? 'block' : 'none';
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BananaPuck Sleep Tracker</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BananaPuck">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+    }
+
+    header {
+      background: #f5c400;
+      color: white;
+      text-align: center;
+      padding: 32px 10px;
+      font-size: 38px;
+      font-weight: bold;
+    }
+
+    .top-controls {
+      padding: 15px 25px;
+      background: white;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #555;
+      padding: 8px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-btn:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    section {
+      padding: 25px;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+      color: #333;
+      font-size: 22px;
+      border-bottom: 2px solid #f5c400;
+      padding-bottom: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .card-title {
+      font-weight: bold;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .card-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #f5c400;
+      margin-bottom: 5px;
+    }
+
+    .card-label {
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+
+    .stat-card-good {
+      border-left: 5px solid #2ecc71;
+    }
+
+    .stat-card-fair {
+      border-left: 5px solid #f39c12;
+    }
+
+    .stat-card-poor {
+      border-left: 5px solid #e74c3c;
+    }
+
+    .habit-form {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="time"],
+    .form-group input[type="date"],
+    .form-group input[type="number"],
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #f5c400;
+      box-shadow: 0 0 0 3px rgba(245, 196, 0, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #f5c400;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #d4a700;
+    }
+
+    .btn-secondary {
+      background: #ecf0f1;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #dde1e6;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    .sleep-history {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .sleep-entry {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sleep-entry:last-child {
+      border-bottom: none;
+    }
+
+    .sleep-entry-info {
+      flex: 1;
+    }
+
+    .sleep-entry-date {
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 5px;
+    }
+
+    .sleep-entry-details {
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+
+    .sleep-entry-quality {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .quality-excellent {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .quality-good {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .quality-fair {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .quality-poor {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin: 20px 0;
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #f5f5f5;
+      font-weight: bold;
+    }
+
+    tr:hover {
+      background: #f9f9f9;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  🌙 Sleep Tracker
+</header>
+
+<div class="top-controls">
+  <div class="page-title">Track Your Sleep</div>
+  <div class="control-buttons">
+    <button class="settings-btn" onclick="window.location.href='index.html'" title="Back to Dashboard">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21H18C18.5523 21 19 20.5523 19 20V10M19 10L21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 21V12M15 21V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button class="settings-btn" onclick="window.location.href='settings.html'" title="Settings">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 8.5A3.5 3.5 0 1 0 12 15.5A3.5 3.5 0 1 0 12 8.5Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M19.4 15A1.7 1.7 0 0 0 19.7 16.9L19.8 17.1A2 2 0 1 1 17.1 19.8L16.9 19.7A1.7 1.7 0 0 0 15 19.4 A1.7 1.7 0 0 0 14 20.9V21A2 2 0 1 1 10 21V20.9 A1.7 1.7 0 0 0 9 19.4 A1.7 1.7 0 0 0 7.1 19.7L6.9 19.8 A2 2 0 1 1 4.2 17.1L4.3 16.9 A1.7 1.7 0 0 0 4.6 15 A1.7 1.7 0 0 0 3.1 14H3 A2 2 0 1 1 3 10H3.1 A1.7 1.7 0 0 0 4.6 9 A1.7 1.7 0 0 0 4.3 7.1L4.2 6.9 A2 2 0 1 1 6.9 4.2L7.1 4.3 A1.7 1.7 0 0 0 9 4.6 A1.7 1.7 0 0 0 10 3.1V3 A2 2 0 1 1 14 3V3.1 A1.7 1.7 0 0 0 15 4.6 A1.7 1.7 0 0 0 16.9 4.3L17.1 4.2 A2 2 0 1 1 19.8 6.9L19.7 7.1 A1.7 1.7 0 0 0 19.4 9 A1.7 1.7 0 0 0 20.9 10H21 A2 2 0 1 1 21 14H20.9 A1.7 1.7 0 0 0 19.4 15Z" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- STATS -->
+<section>
+  <h2>Your Sleep Statistics</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">Average Sleep</div>
+      <div class="card-value" id="avgSleep">--</div>
+      <div class="card-label">hours per night</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Last Night</div>
+      <div class="card-value" id="lastNightSleep">--</div>
+      <div class="card-label">hours</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sleep Streak</div>
+      <div class="card-value" id="sleepStreak">0</div>
+      <div class="card-label">consecutive nights</div>
+    </div>
+  </div>
+</section>
+
+<!-- CHART -->
+<section>
+  <h2>Weekly Sleep Trend</h2>
+  <div class="chart-container">
+    <canvas id="sleepChart"></canvas>
+  </div>
+</section>
+
+<!-- LOG SLEEP -->
+<section>
+  <h2>Log Tonight's Sleep</h2>
+  <div class="habit-form">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="sleepDate">
+      </div>
+      <div class="form-group">
+        <label>Time to Bed</label>
+        <input type="time" id="bedTime">
+      </div>
+      <div class="form-group">
+        <label>Wake Up Time</label>
+        <input type="time" id="wakeTime">
+      </div>
+      <div class="form-group">
+        <label>Sleep Quality</label>
+        <select id="sleepQuality">
+          <option value="">Select quality...</option>
+          <option value="poor">Poor - Woke up frequently</option>
+          <option value="fair">Fair - Somewhat restless</option>
+          <option value="good">Good - Slept well</option>
+          <option value="excellent">Excellent - Very restful</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <input type="text" id="sleepNotes" placeholder="e.g., Too much caffeine, had a good nap">
+    </div>
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="logSleep()">Log Sleep Entry</button>
+      <button class="btn btn-secondary" onclick="clearSleepForm()">Clear</button>
+    </div>
+  </div>
+</section>
+
+<!-- SLEEP HISTORY -->
+<section>
+  <h2>Sleep History</h2>
+  <div class="sleep-history" id="sleepHistoryContainer">
+    <div class="sleep-entry">
+      <div class="sleep-entry-info">
+        <div class="sleep-entry-date">No sleep entries yet</div>
+        <div class="sleep-entry-details">Start logging your sleep to see your history</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 25px;">Detailed Sleep Log</h3>
+  <table id="sleepTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Bedtime</th>
+        <th>Wake Time</th>
+        <th>Duration</th>
+        <th>Quality</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="sleepTableBody"></tbody>
+  </table>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  let sleepChart;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('sleepDate').value = today;
+    loadSleepData();
+    initChart();
+  });
+
+  function logSleep() {
+    const date = document.getElementById('sleepDate').value;
+    const bedTime = document.getElementById('bedTime').value;
+    const wakeTime = document.getElementById('wakeTime').value;
+    const quality = document.getElementById('sleepQuality').value;
+    const notes = document.getElementById('sleepNotes').value;
+
+    if (!date || !bedTime || !wakeTime || !quality) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // Calculate sleep duration
+    const [bedHour, bedMin] = bedTime.split(':').map(Number);
+    const [wakeHour, wakeMin] = wakeTime.split(':').map(Number);
+    
+    let duration = (wakeHour * 60 + wakeMin) - (bedHour * 60 + bedMin);
+    if (duration < 0) duration += 24 * 60; // Account for sleeping past midnight
+    duration = duration / 60; // Convert to hours
+
+    const sleepEntry = {
+      date,
+      bedTime,
+      wakeTime,
+      duration: parseFloat(duration.toFixed(1)),
+      quality,
+      notes,
+      timestamp: new Date().toISOString()
+    };
+
+    let sleepHistory = JSON.parse(localStorage.getItem('sleepHistory') || '[]');
+    sleepHistory.push(sleepEntry);
+    localStorage.setItem('sleepHistory', JSON.stringify(sleepHistory));
+
+    clearSleepForm();
+    loadSleepData();
+    alert('Sleep entry logged successfully!');
+  }
+
+  function clearSleepForm() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('sleepDate').value = today;
+    document.getElementById('bedTime').value = '';
+    document.getElementById('wakeTime').value = '';
+    document.getElementById('sleepQuality').value = '';
+    document.getElementById('sleepNotes').value = '';
+  }
+
+  function loadSleepData() {
+    let sleepHistory = JSON.parse(localStorage.getItem('sleepHistory') || '[]');
+
+    // Calculate statistics
+    if (sleepHistory.length > 0) {
+      const avgSleep = (sleepHistory.reduce((sum, s) => sum + s.duration, 0) / sleepHistory.length).toFixed(1);
+      const lastSleep = sleepHistory[sleepHistory.length - 1];
+      
+      document.getElementById('avgSleep').textContent = avgSleep;
+      document.getElementById('lastNightSleep').textContent = lastSleep.duration;
+
+      // Render history
+      renderSleepHistory(sleepHistory);
+      renderSleepTable(sleepHistory);
+    }
+  }
+
+  function renderSleepHistory(sleepHistory) {
+    let html = '';
+    if (sleepHistory.length === 0) {
+      html = '<div class="sleep-entry"><div class="sleep-entry-info"><div class="sleep-entry-date">No sleep entries yet</div></div></div>';
+    } else {
+      sleepHistory.slice().reverse().slice(0, 10).forEach(entry => {
+        const qualityClass = `quality-${entry.quality}`;
+        html += `
+          <div class="sleep-entry">
+            <div class="sleep-entry-info">
+              <div class="sleep-entry-date">${new Date(entry.date).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}</div>
+              <div class="sleep-entry-details">${entry.bedTime} → ${entry.wakeTime} (${entry.duration} hours)</div>
+            </div>
+            <span class="sleep-entry-quality ${qualityClass}">${entry.quality.charAt(0).toUpperCase() + entry.quality.slice(1)}</span>
+          </div>
+        `;
+      });
+    }
+    document.getElementById('sleepHistoryContainer').innerHTML = html;
+
+    if (sleepHistory.length > 0) {
+      document.getElementById('sleepTable').style.display = 'table';
+    }
+  }
+
+  function renderSleepTable(sleepHistory) {
+    let html = '';
+    sleepHistory.slice().reverse().forEach(entry => {
+      html += `
+        <tr>
+          <td>${new Date(entry.date).toLocaleDateString()}</td>
+          <td>${entry.bedTime}</td>
+          <td>${entry.wakeTime}</td>
+          <td>${entry.duration} hrs</td>
+          <td>${entry.quality}</td>
+          <td><button class="btn-danger" onclick="deleteSleepEntry('${entry.timestamp}')">Delete</button></td>
+        </tr>
+      `;
+    });
+    document.getElementById('sleepTableBody').innerHTML = html;
+  }
+
+  function deleteSleepEntry(timestamp) {
+    if (confirm('Are you sure you want to delete this entry?')) {
+      let sleepHistory = JSON.parse(localStorage.getItem('sleepHistory') || '[]');
+      sleepHistory = sleepHistory.filter(entry => entry.timestamp !== timestamp);
+      localStorage.setItem('sleepHistory', JSON.stringify(sleepHistory));
+      loadSleepData();
+    }
+  }
+
+  function initChart() {
+    let sleepHistory = JSON.parse(localStorage.getItem('sleepHistory') || '[]');
+    
+    // Get last 7 days
+    const last7Days = getLast7DaysSleep(sleepHistory);
+    
+    const ctx = document.getElementById('sleepChart').getContext('2d');
+    sleepChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: last7Days.dates,
+        datasets: [{
+          label: 'Hours Slept',
+          data: last7Days.hours,
+          borderColor: '#4a90e2',
+          backgroundColor: 'rgba(74, 144, 226, 0.1)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#f5c400',
+          pointBorderColor: '#4a90e2',
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 12,
+            ticks: {
+              suffix: ' hrs'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function getLast7DaysSleep(sleepHistory) {
+    const dates = [];
+    const hours = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = date.toLocaleDateString('en-US', {weekday: 'short'});
+
+      const entry = sleepHistory.find(s => s.date === dateStr);
+      dates.push(dayName);
+      hours.push(entry ? entry.duration : 0);
+    }
+
+    return { dates, hours };
+  }
+</script>
+
+</body>
+</html>
