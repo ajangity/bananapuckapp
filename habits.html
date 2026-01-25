@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BananaPuck Habits Tracker</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BananaPuck">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+    }
+
+    /* HEADER */
+    header {
+      background: #f5c400;
+      color: white;
+      text-align: center;
+      padding: 32px 10px;
+      font-size: 38px;
+      font-weight: bold;
+    }
+
+    /* TOP CONTROLS */
+    .top-controls {
+      padding: 15px 25px;
+      background: white;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .control-buttons .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #555;
+      padding: 8px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .control-buttons .settings-btn:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    section {
+      padding: 25px;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+      color: #333;
+      font-size: 22px;
+      border-bottom: 2px solid #f5c400;
+      padding-bottom: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+    }
+
+    .card-title {
+      font-weight: bold;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .card-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 8px;
+    }
+
+    .card-label {
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+
+    .card.sleep-good {
+      border-left: 5px solid #2ecc71;
+    }
+
+    .card.sleep-warning {
+      border-left: 5px solid #f39c12;
+    }
+
+    .card.sleep-poor {
+      border-left: 5px solid #e74c3c;
+    }
+
+    /* FORM STYLES */
+    .habit-form {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="time"],
+    .form-group input[type="date"],
+    .form-group input[type="number"],
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #f5c400;
+      box-shadow: 0 0 0 3px rgba(245, 196, 0, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #f5c400;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #d4a700;
+    }
+
+    .btn-secondary {
+      background: #ecf0f1;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #dde1e6;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    /* HABIT LIST */
+    .habit-list {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .habit-item {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .habit-item:last-child {
+      border-bottom: none;
+    }
+
+    .habit-item-info {
+      flex: 1;
+    }
+
+    .habit-item-name {
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 5px;
+    }
+
+    .habit-item-detail {
+      font-size: 12px;
+      color: #7f8c8d;
+    }
+
+    .habit-item-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* MODAL */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      width: 85%;
+      max-height: 85%;
+      overflow-y: auto;
+      border-radius: 16px;
+      padding: 25px;
+      position: relative;
+    }
+
+    .close-x {
+      position: absolute;
+      top: 12px;
+      right: 18px;
+      font-size: 22px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* CHARTS */
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin: 20px 0;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .tab-btn {
+      padding: 12px 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-weight: bold;
+      color: #7f8c8d;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      color: #f5c400;
+      border-bottom-color: #f5c400;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .stat-box {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #f5c400;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #7f8c8d;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="app-header">
+  BananaPuck Habits Tracker
+</header>
+
+<div class="top-controls">
+  <div class="page-title">Your Daily Habits</div>
+  <div class="control-buttons">
+    <button class="settings-btn" onclick="window.location.href='index.html'" title="Back to Dashboard">
+      <!-- Home SVG -->
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+           xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21H18C18.5523 21 19 20.5523 19 20V10M19 10L21 12"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 21V12M15 21V12"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button class="settings-btn" onclick="window.location.href='settings.html'" title="Settings">
+      <!-- Gear SVG -->
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+           xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 8.5A3.5 3.5 0 1 0 12 15.5A3.5 3.5 0 1 0 12 8.5Z"
+              stroke="currentColor" stroke-width="2"/>
+        <path d="M19.4 15A1.7 1.7 0 0 0 19.7 16.9L19.8 17.1A2 2 0 1 1 17.1 19.8L16.9 19.7A1.7 1.7 0 0 0 15 19.4
+                 A1.7 1.7 0 0 0 14 20.9V21A2 2 0 1 1 10 21V20.9
+                 A1.7 1.7 0 0 0 9 19.4
+                 A1.7 1.7 0 0 0 7.1 19.7L6.9 19.8
+                 A2 2 0 1 1 4.2 17.1L4.3 16.9
+                 A1.7 1.7 0 0 0 4.6 15
+                 A1.7 1.7 0 0 0 3.1 14H3
+                 A2 2 0 1 1 3 10H3.1
+                 A1.7 1.7 0 0 0 4.6 9
+                 A1.7 1.7 0 0 0 4.3 7.1L4.2 6.9
+                 A2 2 0 1 1 6.9 4.2L7.1 4.3
+                 A1.7 1.7 0 0 0 9 4.6
+                 A1.7 1.7 0 0 0 10 3.1V3
+                 A2 2 0 1 1 14 3V3.1
+                 A1.7 1.7 0 0 0 15 4.6
+                 A1.7 1.7 0 0 0 16.9 4.3L17.1 4.2
+                 A2 2 0 1 1 19.8 6.9L19.7 7.1
+                 A1.7 1.7 0 0 0 19.4 9
+                 A1.7 1.7 0 0 0 20.9 10H21
+                 A2 2 0 1 1 21 14H20.9
+                 A1.7 1.7 0 0 0 19.4 15Z"
+              stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- SLEEP TRACKING -->
+<section>
+  <h2>Sleep Tracking</h2>
+  <div class="grid">
+    <div class="card sleep-good">
+      <div class="card-title">Last Night's Sleep</div>
+      <div class="card-value" id="sleepDuration">-- hours</div>
+      <div class="card-label">Hours slept</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Bedtime</div>
+      <div class="card-value" id="bedTime">--:--</div>
+      <div class="card-label">When you fell asleep</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Wake Time</div>
+      <div class="card-value" id="wakeTime">--:--</div>
+      <div class="card-label">When you woke up</div>
+    </div>
+  </div>
+
+  <div class="habit-form" style="margin-top: 20px;">
+    <h3 style="margin-top: 0;">Log Sleep</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="sleepDate">
+      </div>
+      <div class="form-group">
+        <label>Bedtime</label>
+        <input type="time" id="sleepBedtime">
+      </div>
+      <div class="form-group">
+        <label>Wake Time</label>
+        <input type="time" id="sleepWakeTime">
+      </div>
+      <div class="form-group">
+        <label>Sleep Quality</label>
+        <select id="sleepQuality">
+          <option value="">Select quality...</option>
+          <option value="poor">Poor</option>
+          <option value="fair">Fair</option>
+          <option value="good">Good</option>
+          <option value="excellent">Excellent</option>
+        </select>
+      </div>
+    </div>
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="logSleep()">Log Sleep</button>
+      <button class="btn btn-secondary" onclick="clearSleepForm()">Clear</button>
+    </div>
+  </div>
+</section>
+
+<!-- MORNING & NIGHT ROUTINES -->
+<section>
+  <h2>Daily Routines</h2>
+  
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchRoutineTab('morning')">Morning Routine</button>
+    <button class="tab-btn" onclick="switchRoutineTab('night')">Night Routine</button>
+  </div>
+
+  <div id="morning" class="tab-content active">
+    <div class="habit-form">
+      <h3 style="margin-top: 0;">Morning Routine Checklist</h3>
+      <div id="morningChecklist" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="shower" onchange="saveMorningRoutine()">
+          <label for="shower">Shower/Wash</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="brushTeeth" onchange="saveMorningRoutine()">
+          <label for="brushTeeth">Brush Teeth</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="breakfast" onchange="saveMorningRoutine()">
+          <label for="breakfast">Eat Breakfast</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="morningExercise" onchange="saveMorningRoutine()">
+          <label for="morningExercise">Light Exercise</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="meditation" onchange="saveMorningRoutine()">
+          <label for="meditation">Meditation</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="drinkWater" onchange="saveMorningRoutine()">
+          <label for="drinkWater">Drink Water</label>
+        </div>
+      </div>
+      <div class="button-group" style="margin-top: 15px;">
+        <button class="btn btn-primary" onclick="completeMorningRoutine()">Mark Complete</button>
+        <button class="btn btn-secondary" onclick="clearMorningRoutine()">Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="night" class="tab-content">
+    <div class="habit-form">
+      <h3 style="margin-top: 0;">Night Routine Checklist</h3>
+      <div id="nightChecklist" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="nightShower" onchange="saveNightRoutine()">
+          <label for="nightShower">Shower/Bath</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="brushTeethNight" onchange="saveNightRoutine()">
+          <label for="brushTeethNight">Brush Teeth</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="skincare" onchange="saveNightRoutine()">
+          <label for="skincare">Skincare</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="readingWind" onchange="saveNightRoutine()">
+          <label for="readingWind">Read/Wind Down</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="noScreen" onchange="saveNightRoutine()">
+          <label for="noScreen">No Screens (30 min)</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="chamomile" onchange="saveNightRoutine()">
+          <label for="chamomile">Herbal Tea</label>
+        </div>
+      </div>
+      <div class="button-group" style="margin-top: 15px;">
+        <button class="btn btn-primary" onclick="completeNightRoutine()">Mark Complete</button>
+        <button class="btn btn-secondary" onclick="clearNightRoutine()">Clear All</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DIET TRACKING -->
+<section>
+  <h2>Diet & Hydration</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">Water Intake</div>
+      <div class="card-value" id="waterIntake">0</div>
+      <div class="card-label">Cups today</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Meals Logged</div>
+      <div class="card-value" id="mealsLogged">0</div>
+      <div class="card-label">Today</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Healthy Choices</div>
+      <div class="card-value" id="healthyChoices">0</div>
+      <div class="card-label">% today</div>
+    </div>
+  </div>
+
+  <div class="habit-form" style="margin-top: 20px;">
+    <h3 style="margin-top: 0;">Log Meal</h3>
+    <div class="form-group">
+      <label>Meal Type</label>
+      <select id="mealType">
+        <option value="">Select meal...</option>
+        <option value="breakfast">Breakfast</option>
+        <option value="lunch">Lunch</option>
+        <option value="dinner">Dinner</option>
+        <option value="snack">Snack</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Food Items</label>
+      <input type="text" id="foodItems" placeholder="e.g., Chicken, Rice, Broccoli">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Calories (optional)</label>
+        <input type="number" id="calories" placeholder="e.g., 500">
+      </div>
+      <div class="form-group">
+        <label>Healthiness Level</label>
+        <select id="mealHealthiness">
+          <option value="">Select...</option>
+          <option value="unhealthy">Unhealthy</option>
+          <option value="moderate">Moderate</option>
+          <option value="healthy">Healthy</option>
+        </select>
+      </div>
+    </div>
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="logMeal()">Log Meal</button>
+      <button class="btn btn-secondary" onclick="clearMealForm()">Clear</button>
+    </div>
+  </div>
+
+  <div class="habit-form" style="margin-top: 20px;">
+    <h3 style="margin-top: 0;">Log Water Intake</h3>
+    <div class="form-group">
+      <label>Cups of Water</label>
+      <input type="number" id="waterCups" placeholder="e.g., 2" min="1">
+    </div>
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="logWater()">Log Water</button>
+    </div>
+  </div>
+</section>
+
+<!-- WORKOUTS -->
+<section>
+  <h2>Workout Routines</h2>
+  <div class="habit-form">
+    <h3 style="margin-top: 0;">Log Workout</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Workout Type</label>
+        <select id="workoutType">
+          <option value="">Select type...</option>
+          <option value="cardio">Cardio (Running, Cycling)</option>
+          <option value="strength">Strength Training</option>
+          <option value="flexibility">Flexibility (Yoga, Pilates)</option>
+          <option value="sports">Sports</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Duration (minutes)</label>
+        <input type="number" id="workoutDuration" placeholder="e.g., 45" min="1">
+      </div>
+      <div class="form-group">
+        <label>Intensity</label>
+        <select id="workoutIntensity">
+          <option value="">Select intensity...</option>
+          <option value="light">Light</option>
+          <option value="moderate">Moderate</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="workoutDate">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <input type="text" id="workoutNotes" placeholder="How did you feel? What did you do?">
+    </div>
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="logWorkout()">Log Workout</button>
+      <button class="btn btn-secondary" onclick="clearWorkoutForm()">Clear</button>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px;">
+    <h3>This Week's Workouts</h3>
+    <div class="habit-list" id="weeklyWorkouts">
+      <div class="habit-item">
+        <div class="habit-item-info">
+          <div class="habit-item-name">No workouts logged yet</div>
+          <div class="habit-item-detail">Start logging to see your weekly activity</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STRETCHING -->
+<section>
+  <h2>Stretching Routines</h2>
+  <div class="habit-form">
+    <h3 style="margin-top: 0;">Quick Stretch Session</h3>
+    <div id="stretchChecklist" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="neck-shoulders">
+        <label for="neck-shoulders">Neck & Shoulders</label>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="arms-chest">
+        <label for="arms-chest">Arms & Chest</label>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="back">
+        <label for="back">Back</label>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="wrists-forearms">
+        <label for="wrists-forearms">Wrists & Forearms</label>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="legs">
+        <label for="legs">Legs & Hamstrings</label>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="hips-glutes">
+        <label for="hips-glutes">Hips & Glutes</label>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="calves">
+        <label for="calves">Calves</label>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="full-body">
+        <label for="full-body">Full Body</label>
+      </div>
+    </div>
+    <div class="button-group" style="margin-top: 15px;">
+      <button class="btn btn-primary" onclick="logStretch()">Log Stretch Session</button>
+      <button class="btn btn-secondary" onclick="clearStretchForm()">Clear</button>
+    </div>
+  </div>
+</section>
+
+<!-- ACTIVITY TRACKING -->
+<section>
+  <h2>Daily Activity</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">Steps Today</div>
+      <div class="card-value" id="stepsToday">0</div>
+      <div class="card-label">steps</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Active Minutes</div>
+      <div class="card-value" id="activeMinutes">0</div>
+      <div class="card-label">minutes</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Calories Burned</div>
+      <div class="card-value" id="caloriesBurned">0</div>
+      <div class="card-label">kcal</div>
+    </div>
+  </div>
+
+  <div class="habit-form" style="margin-top: 20px;">
+    <h3 style="margin-top: 0;">Log Activity</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Activity Type</label>
+        <select id="activityType">
+          <option value="">Select activity...</option>
+          <option value="walking">Walking</option>
+          <option value="running">Running</option>
+          <option value="cycling">Cycling</option>
+          <option value="swimming">Swimming</option>
+          <option value="hiking">Hiking</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Duration (minutes)</label>
+        <input type="number" id="activityDuration" placeholder="e.g., 30" min="1">
+      </div>
+      <div class="form-group">
+        <label>Intensity</label>
+        <select id="activityIntensity">
+          <option value="">Select...</option>
+          <option value="light">Light</option>
+          <option value="moderate">Moderate</option>
+          <option value="vigorous">Vigorous</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Steps (optional)</label>
+        <input type="number" id="activitySteps" placeholder="e.g., 5000">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <input type="text" id="activityNotes" placeholder="Location, how you felt, etc.">
+    </div>
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="logActivity()">Log Activity</button>
+      <button class="btn btn-secondary" onclick="clearActivityForm()">Clear</button>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Initialize date fields with today's date
+  document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    if (document.getElementById('sleepDate')) document.getElementById('sleepDate').value = today;
+    if (document.getElementById('workoutDate')) document.getElementById('workoutDate').value = today;
+    
+    loadAllHabits();
+    updateStats();
+  });
+
+  // ROUTINE TAB SWITCHING
+  function switchRoutineTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // SLEEP FUNCTIONS
+  function logSleep() {
+    const date = document.getElementById('sleepDate').value;
+    const bedtime = document.getElementById('sleepBedtime').value;
+    const wakeTime = document.getElementById('sleepWakeTime').value;
+    const quality = document.getElementById('sleepQuality').value;
+
+    if (!date || !bedtime || !wakeTime || !quality) {
+      alert('Please fill in all sleep fields');
+      return;
+    }
+
+    const sleepData = {
+      date,
+      bedtime,
+      wakeTime,
+      quality,
+      timestamp: new Date().toISOString()
+    };
+
+    let sleepHistory = JSON.parse(localStorage.getItem('sleepHistory') || '[]');
+    sleepHistory.push(sleepData);
+    localStorage.setItem('sleepHistory', JSON.stringify(sleepHistory));
+
+    clearSleepForm();
+    updateStats();
+    alert('Sleep logged successfully!');
+  }
+
+  function clearSleepForm() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('sleepDate').value = today;
+    document.getElementById('sleepBedtime').value = '';
+    document.getElementById('sleepWakeTime').value = '';
+    document.getElementById('sleepQuality').value = '';
+  }
+
+  // ROUTINE FUNCTIONS
+  function saveMorningRoutine() {
+    const routine = {
+      shower: document.getElementById('shower').checked,
+      brushTeeth: document.getElementById('brushTeeth').checked,
+      breakfast: document.getElementById('breakfast').checked,
+      morningExercise: document.getElementById('morningExercise').checked,
+      meditation: document.getElementById('meditation').checked,
+      drinkWater: document.getElementById('drinkWater').checked,
+      date: new Date().toISOString().split('T')[0]
+    };
+    localStorage.setItem('morningRoutine', JSON.stringify(routine));
+  }
+
+  function completeMorningRoutine() {
+    saveMorningRoutine();
+    alert('Morning routine logged!');
+  }
+
+  function clearMorningRoutine() {
+    document.querySelectorAll('#morningChecklist input[type="checkbox"]').forEach(cb => cb.checked = false);
+    localStorage.removeItem('morningRoutine');
+  }
+
+  function saveNightRoutine() {
+    const routine = {
+      nightShower: document.getElementById('nightShower').checked,
+      brushTeethNight: document.getElementById('brushTeethNight').checked,
+      skincare: document.getElementById('skincare').checked,
+      readingWind: document.getElementById('readingWind').checked,
+      noScreen: document.getElementById('noScreen').checked,
+      chamomile: document.getElementById('chamomile').checked,
+      date: new Date().toISOString().split('T')[0]
+    };
+    localStorage.setItem('nightRoutine', JSON.stringify(routine));
+  }
+
+  function completeNightRoutine() {
+    saveNightRoutine();
+    alert('Night routine logged!');
+  }
+
+  function clearNightRoutine() {
+    document.querySelectorAll('#nightChecklist input[type="checkbox"]').forEach(cb => cb.checked = false);
+    localStorage.removeItem('nightRoutine');
+  }
+
+  // MEAL FUNCTIONS
+  function logMeal() {
+    const mealType = document.getElementById('mealType').value;
+    const foodItems = document.getElementById('foodItems').value;
+    const calories = document.getElementById('calories').value;
+    const healthiness = document.getElementById('mealHealthiness').value;
+
+    if (!mealType || !foodItems || !healthiness) {
+      alert('Please fill in all required meal fields');
+      return;
+    }
+
+    const mealData = {
+      mealType,
+      foodItems,
+      calories: calories || 'Not specified',
+      healthiness,
+      timestamp: new Date().toISOString()
+    };
+
+    let meals = JSON.parse(localStorage.getItem('meals') || '[]');
+    meals.push(mealData);
+    localStorage.setItem('meals', JSON.stringify(meals));
+
+    clearMealForm();
+    updateStats();
+    alert('Meal logged successfully!');
+  }
+
+  function clearMealForm() {
+    document.getElementById('mealType').value = '';
+    document.getElementById('foodItems').value = '';
+    document.getElementById('calories').value = '';
+    document.getElementById('mealHealthiness').value = '';
+  }
+
+  function logWater() {
+    const cups = document.getElementById('waterCups').value;
+    if (!cups || cups < 1) {
+      alert('Please enter a valid number of cups');
+      return;
+    }
+
+    let waterIntake = JSON.parse(localStorage.getItem('waterIntake') || '{"cups": 0, "date": "' + new Date().toISOString().split('T')[0] + '"}');
+    
+    if (waterIntake.date !== new Date().toISOString().split('T')[0]) {
+      waterIntake = { cups: 0, date: new Date().toISOString().split('T')[0] };
+    }
+
+    waterIntake.cups += parseInt(cups);
+    localStorage.setItem('waterIntake', JSON.stringify(waterIntake));
+
+    document.getElementById('waterCups').value = '';
+    updateStats();
+    alert(`${cups} cups of water logged!`);
+  }
+
+  // WORKOUT FUNCTIONS
+  function logWorkout() {
+    const workoutType = document.getElementById('workoutType').value;
+    const duration = document.getElementById('workoutDuration').value;
+    const intensity = document.getElementById('workoutIntensity').value;
+    const date = document.getElementById('workoutDate').value;
+    const notes = document.getElementById('workoutNotes').value;
+
+    if (!workoutType || !duration || !intensity || !date) {
+      alert('Please fill in all required workout fields');
+      return;
+    }
+
+    const workoutData = {
+      type: workoutType,
+      duration: parseInt(duration),
+      intensity,
+      date,
+      notes,
+      timestamp: new Date().toISOString()
+    };
+
+    let workouts = JSON.parse(localStorage.getItem('workouts') || '[]');
+    workouts.push(workoutData);
+    localStorage.setItem('workouts', JSON.stringify(workouts));
+
+    clearWorkoutForm();
+    updateStats();
+    renderWeeklyWorkouts();
+    alert('Workout logged successfully!');
+  }
+
+  function clearWorkoutForm() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('workoutType').value = '';
+    document.getElementById('workoutDuration').value = '';
+    document.getElementById('workoutIntensity').value = '';
+    document.getElementById('workoutDate').value = today;
+    document.getElementById('workoutNotes').value = '';
+  }
+
+  function renderWeeklyWorkouts() {
+    let workouts = JSON.parse(localStorage.getItem('workouts') || '[]');
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const recentWorkouts = workouts.filter(w => new Date(w.date) >= weekAgo).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    let html = '';
+    if (recentWorkouts.length === 0) {
+      html = '<div class="habit-item"><div class="habit-item-info"><div class="habit-item-name">No workouts logged this week</div></div></div>';
+    } else {
+      recentWorkouts.forEach(w => {
+        html += `
+          <div class="habit-item">
+            <div class="habit-item-info">
+              <div class="habit-item-name">${w.type} - ${w.intensity} intensity</div>
+              <div class="habit-item-detail">${w.duration} minutes on ${new Date(w.date).toLocaleDateString()}${w.notes ? ' - ' + w.notes : ''}</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+    document.getElementById('weeklyWorkouts').innerHTML = html;
+  }
+
+  // STRETCH FUNCTIONS
+  function logStretch() {
+    const stretches = Array.from(document.querySelectorAll('#stretchChecklist input:checked')).length;
+    if (stretches === 0) {
+      alert('Please select at least one stretch area');
+      return;
+    }
+
+    const stretchData = {
+      areas: Array.from(document.querySelectorAll('#stretchChecklist input:checked')).map(cb => cb.nextElementSibling.textContent),
+      date: new Date().toISOString().split('T')[0],
+      timestamp: new Date().toISOString()
+    };
+
+    let stretches_log = JSON.parse(localStorage.getItem('stretches') || '[]');
+    stretches_log.push(stretchData);
+    localStorage.setItem('stretches', JSON.stringify(stretches_log));
+
+    clearStretchForm();
+    updateStats();
+    alert('Stretch session logged!');
+  }
+
+  function clearStretchForm() {
+    document.querySelectorAll('#stretchChecklist input[type="checkbox"]').forEach(cb => cb.checked = false);
+  }
+
+  // ACTIVITY FUNCTIONS
+  function logActivity() {
+    const activityType = document.getElementById('activityType').value;
+    const duration = document.getElementById('activityDuration').value;
+    const intensity = document.getElementById('activityIntensity').value;
+    const steps = document.getElementById('activitySteps').value;
+    const notes = document.getElementById('activityNotes').value;
+
+    if (!activityType || !duration || !intensity) {
+      alert('Please fill in all required activity fields');
+      return;
+    }
+
+    const activityData = {
+      type: activityType,
+      duration: parseInt(duration),
+      intensity,
+      steps: steps ? parseInt(steps) : 0,
+      notes,
+      timestamp: new Date().toISOString()
+    };
+
+    let activities = JSON.parse(localStorage.getItem('activities') || '[]');
+    activities.push(activityData);
+    localStorage.setItem('activities', JSON.stringify(activities));
+
+    clearActivityForm();
+    updateStats();
+    alert('Activity logged successfully!');
+  }
+
+  function clearActivityForm() {
+    document.getElementById('activityType').value = '';
+    document.getElementById('activityDuration').value = '';
+    document.getElementById('activityIntensity').value = '';
+    document.getElementById('activitySteps').value = '';
+    document.getElementById('activityNotes').value = '';
+  }
+
+  // UPDATE STATS
+  function updateStats() {
+    // Sleep stats
+    let sleepHistory = JSON.parse(localStorage.getItem('sleepHistory') || '[]');
+    if (sleepHistory.length > 0) {
+      const lastSleep = sleepHistory[sleepHistory.length - 1];
+      document.getElementById('sleepDuration').textContent = '-- hours';
+      document.getElementById('bedTime').textContent = lastSleep.bedtime;
+      document.getElementById('wakeTime').textContent = lastSleep.wakeTime;
+    }
+
+    // Water intake
+    let waterIntake = JSON.parse(localStorage.getItem('waterIntake') || '{}');
+    if (waterIntake.cups) {
+      document.getElementById('waterIntake').textContent = waterIntake.cups;
+    }
+
+    // Meals
+    let meals = JSON.parse(localStorage.getItem('meals') || '[]');
+    document.getElementById('mealsLogged').textContent = meals.filter(m => m.timestamp && new Date(m.timestamp).toDateString() === new Date().toDateString()).length;
+
+    // Activities
+    let activities = JSON.parse(localStorage.getItem('activities') || '[]');
+    let totalSteps = 0;
+    let totalMinutes = 0;
+    activities.forEach(a => {
+      totalSteps += a.steps || 0;
+      totalMinutes += a.duration || 0;
+    });
+    document.getElementById('stepsToday').textContent = totalSteps.toLocaleString();
+    document.getElementById('activeMinutes').textContent = totalMinutes;
+  }
+
+  // LOAD ALL HABITS
+  function loadAllHabits() {
+    const morningRoutine = JSON.parse(localStorage.getItem('morningRoutine') || '{}');
+    const nightRoutine = JSON.parse(localStorage.getItem('nightRoutine') || '{}');
+
+    if (morningRoutine.shower) document.getElementById('shower').checked = true;
+    if (morningRoutine.brushTeeth) document.getElementById('brushTeeth').checked = true;
+    if (morningRoutine.breakfast) document.getElementById('breakfast').checked = true;
+    if (morningRoutine.morningExercise) document.getElementById('morningExercise').checked = true;
+    if (morningRoutine.meditation) document.getElementById('meditation').checked = true;
+    if (morningRoutine.drinkWater) document.getElementById('drinkWater').checked = true;
+
+    if (nightRoutine.nightShower) document.getElementById('nightShower').checked = true;
+    if (nightRoutine.brushTeethNight) document.getElementById('brushTeethNight').checked = true;
+    if (nightRoutine.skincare) document.getElementById('skincare').checked = true;
+    if (nightRoutine.readingWind) document.getElementById('readingWind').checked = true;
+    if (nightRoutine.noScreen) document.getElementById('noScreen').checked = true;
+    if (nightRoutine.chamomile) document.getElementById('chamomile').checked = true;
+
+    renderWeeklyWorkouts();
+  }
+</script>
+
+</body>
+</html>
