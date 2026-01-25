@@ -145,9 +145,22 @@
 <script src="app.js"></script>
 
 <script>
-  // Initialize drawing map on page load
+  // Initialize drawing map and load safe paths on settings page
   window.addEventListener('DOMContentLoaded', function() {
-    setTimeout(initializeDrawingMap, 100);
+    // Load safe paths from localStorage
+    if (typeof loadSafePaths === 'function') {
+      loadSafePaths();
+    }
+    // Initialize the drawing map
+    setTimeout(function() {
+      if (typeof initializeDrawingMap === 'function') {
+        initializeDrawingMap();
+      }
+      // Render the saved paths list
+      if (typeof renderSavedPathsList === 'function') {
+        renderSavedPathsList();
+      }
+    }, 100);
   });
 </script>
 

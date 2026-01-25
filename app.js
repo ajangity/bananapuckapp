@@ -507,7 +507,6 @@ function renderSafePaths() {
         drawingMap.removeLayer(layer);
 
       }
-      }
 
     });
 
@@ -993,24 +992,23 @@ function renderSavedPathsList() {
 
 
 async function fetchData() {
-
-  const res = await fetch(API);
-
-  const data = await res.json();
-
+  try {
+    const res = await fetch(API);
+    const data = await res.json();
 
 
-  // Detect current activity based on sensor data
 
-  currentStatus = detectActivity(data.hr, data.breathing, data.accel.x, data.accel.y, data.accel.z);
+    // Detect current activity based on sensor data
 
-  
+    currentStatus = detectActivity(data.hr, data.breathing, data.accel.x, data.accel.y, data.accel.z);
 
-  // Update stable activity (requires stability and minimum duration)
+    
 
-  updateActivityStatus(currentStatus);
+    // Update stable activity (requires stability and minimum duration)
 
-  updateStatusDisplay();
+    updateActivityStatus(currentStatus);
+
+    updateStatusDisplay();
 
 
 
@@ -1099,7 +1097,9 @@ async function fetchData() {
 
 
   pruneOldData();
-
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
 }
 
 
@@ -1107,19 +1107,22 @@ async function fetchData() {
 
 
 async function fetchAlerts() {
+  try {
+    const res = await fetch(ALERTS_API);
+    alerts = (await res.json()).map(a => ({
 
-  const res = await fetch(ALERTS_API);
+      ...a,
 
-  alerts = (await res.json()).map(a => ({
+      time: new Date(a.timestamp * 1000)
 
-    ...a,
+    }));
 
-    time: new Date(a.timestamp * 1000)
-
-  }));
-
-  renderAlerts();
-
+    renderAlerts();
+  } catch (error) {
+    console.error('Error fetching alerts:', error);
+    alerts = [];
+    renderAlerts();
+  }
 }
 
 
@@ -1376,6 +1379,9 @@ document.addEventListener("click", e => {
 
 /* ---------- ALERTS ---------- */
 
+// Only run dashboard initialization on index.html, not on settings.html
+if (!window.location.pathname.endsWith('settings.html')) {
+
 loadSettings();
 
 loadSafePaths();
@@ -1394,6 +1400,15 @@ fetchData();
 fetchAlerts();
 
 showActiveAlerts();
+
+}
+
+function renderAlerts() {
+  const container = document.getElementById("activeAlerts");
+  container.innerHTML = "";
+
+  const groups = {};
+
   alerts.forEach(a => {
 
     if (!a.acknowledged) {
