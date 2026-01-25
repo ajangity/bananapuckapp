@@ -66,84 +66,46 @@ let lastActivityChangeTime = Date.now();
 
 let activityConfirmationCount = 0;
 
-let requiredConfirmations = 3; // Require 3 consistent readings before changing activity
+  if (safePathsLayerGroup) {
+    safePathsLayerGroup.clearLayers();
 
+    safePaths.forEach((path, index) => {
+      if (path.coordinates && path.coordinates.length > 0) {
+        const polyline = L.polyline(path.coordinates, {
+          color: "#2ecc71",
+          weight: 5,
+          opacity: 0.8,
+          dashArray: "10, 5"
+        }).addTo(safePathsLayerGroup);
 
+        polyline.bindPopup(`<strong>${path.name || `Path ${index + 1}`}</strong><br><button onclick="deleteSafePath(${index})" style="margin-top: 5px; padding: 4px 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>`);
+      }
+    });
+  }
 
-let lastSensorData = {
+  // Also render on drawing map if it exists
+  if (drawingMap) {
+    // Clear existing path layers (but keep markers)
+    drawingMap.eachLayer(function(layer) {
+      if (layer instanceof L.Polyline && layer !== currentPathPolyline) {
+        drawingMap.removeLayer(layer);
+      }
+    });
 
-  hr: 0,
+    // Add saved paths to drawing map
+    safePaths.forEach((path, index) => {
+      if (path.coordinates && path.coordinates.length > 0) {
+        const polyline = L.polyline(path.coordinates, {
+          color: "#2ecc71",
+          weight: 4,
+          opacity: 0.6,
+          dashArray: "10, 5"
+        }).addTo(drawingMap);
 
-  breathing: 0,
-
-  temp: 0,
-
-  accel_mag: 0
-
-};
-
-
-
-// Activity minimum durations (in milliseconds)
-
-const ACTIVITY_MIN_DURATIONS = {
-
-  sleeping: 7 * 60 * 60 * 1000,        // 7 hours
-
-  napping: 60 * 60 * 1000,             // 1 hour
-
-  showering: 15 * 60 * 1000,           // 15 minutes
-
-  exercising: 30 * 60 * 1000,          // 30 minutes minimum
-
-  walking: 10 * 60 * 1000,             // 10 minutes
-
-  resting: 5 * 60 * 1000,              // 5 minutes
-
-  running: 5 * 60 * 1000,              // 5 minutes
-
-  eating: 15 * 60 * 1000               // 15 minutes
-
-};
-
-
-
-// CO2 alert cooldown (prevent alert spam)
-
-let lastCO2SpikeTime = 0;
-
-const CO2_SPIKE_COOLDOWN = 5 * 60 * 1000; // 5 minutes
-
-
-
-// Breathing alert cooldown (prevent alert spam)
-
-let lastBreathingAlertTime = 0;
-
-const BREATHING_ALERT_COOLDOWN = 3 * 60 * 1000; // 3 minutes between alerts
-
-
-
-/* ---------- ACTIVITY DETECTION ---------- */
-
-function detectActivity(hr, breathing, accelX, accelY, accelZ) {
-
-  // Calculate acceleration magnitude (gravity-adjusted)
-
-  const accelMag = Math.sqrt(accelX * accelX + accelY * accelY + (accelZ - 9.81) * (accelZ - 9.81));
-
-  lastSensorData = { hr, breathing, accel_mag: accelMag };
-
-
-
-  // Detect activity based on vital signs and motion
-
-  if (hr < 65 && breathing < 18 && accelMag < 0.5) {
-
-    return "sleeping";
-
-  } else if (accelMag > 3) {
-
+        polyline.bindPopup(`<strong>${path.name || `Path ${index + 1}`}</strong>`);
+      }
+    });
+  }
     // High movement
 
     if (hr > 110) {
@@ -404,53 +366,22 @@ function pruneOldData() {
 
 function loadSettings() {
 
-  const stored = localStorage.getItem(SETTINGS_KEY);
-
-  if (!stored) return;
-
-
-
-  try {
-
-    const settings = JSON.parse(stored);
-
-    if (settings.refreshIntervalMs) {
-
-      refreshIntervalMs = settings.refreshIntervalMs;
-
-    }
-
-  } catch {
-
-    console.warn("Failed to load settings");
-
-  }
+  // Previously opened a modal on index; now navigate to the settings page section
+  window.location.href = 'settings.html#safe-paths';
 
 }
 
 
 
-function goToSettings() {
+function closeSafePathsModal() {
 
-  window.location.href = "settings.html";
+  // modal removed — no-op
 
 }
-
-
-
-/* ---------- MAP ---------- */
-
-const map = L.map("map").setView([36.9741, -122.0308], 13);
-
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-const marker = L.marker([36.9741, -122.0308]).addTo(map);
-
-
-
-// Layer group for safe paths
-
-const safePathsLayerGroup = L.layerGroup().addTo(map);
+// Main map, marker and layer group (initialized on page load)
+let map = null;
+let marker = null;
+let safePathsLayerGroup = null;
 
 
 
@@ -486,6 +417,36 @@ function loadSafePaths() {
 
 }
 
+  // Initialize the main map displayed on the dashboard (index.html)
+  function initializeMainMap() {
+    const mapEl = document.getElementById('map');
+    if (!mapEl) return;
+
+    // Default view
+    const initialLat = 36.9741;
+    const initialLon = -122.0308;
+
+    // Create map
+    try {
+      map = L.map('map', { center: [initialLat, initialLon], zoom: 13 });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      // create marker placeholder
+      marker = L.marker([initialLat, initialLon], { draggable: false }).addTo(map);
+
+      // Layer group for safe paths on main map
+      safePathsLayerGroup = L.layerGroup().addTo(map);
+
+      // Render any saved safe paths onto the main map
+      if (typeof renderSafePaths === 'function') renderSafePaths();
+    } catch (e) {
+      console.warn('Main map init failed', e);
+    }
+  }
+
 
 
 function saveSafePaths() {
@@ -500,7 +461,7 @@ function renderSafePaths() {
 
   // Render on main map
 
-  safePathsLayerGroup.clearLayers();
+  if (safePathsLayerGroup) safePathsLayerGroup.clearLayers();
 
 
 
@@ -508,7 +469,8 @@ function renderSafePaths() {
 
     if (path.coordinates && path.coordinates.length > 0) {
 
-      const polyline = L.polyline(path.coordinates, {
+      if (safePathsLayerGroup) {
+        const polyline = L.polyline(path.coordinates, {
 
         color: "#2ecc71",
 
@@ -518,7 +480,7 @@ function renderSafePaths() {
 
         dashArray: "10, 5"
 
-      }).addTo(safePathsLayerGroup);
+        }).addTo(safePathsLayerGroup);
 
 
 
@@ -544,6 +506,7 @@ function renderSafePaths() {
 
         drawingMap.removeLayer(layer);
 
+      }
       }
 
     });
@@ -584,7 +547,8 @@ function renderSafePaths() {
 
 function openSafePathsModal() {
 
-  document.getElementById("safePathsModal").style.display = "flex";
+  window.location.href = 'settings.html#safe-paths';
+  return;
 
   
 
@@ -626,9 +590,7 @@ function openSafePathsModal() {
 
 function closeSafePathsModal() {
 
-  document.getElementById("safePathsModal").style.display = "none";
-
-  stopDrawingPath();
+  // modal removed — no-op
 
 }
 
@@ -1414,18 +1376,24 @@ document.addEventListener("click", e => {
 
 /* ---------- ALERTS ---------- */
 
-function renderAlerts() {
+loadSettings();
 
-  const container = document.getElementById("activeAlerts");
+loadSafePaths();
 
-  container.innerHTML = "";
+applyRefreshIntervals();
 
+// Initialize main map if we're on the dashboard (index.html)
+try {
+  initializeMainMap();
+} catch (e) {
+  console.warn('initializeMainMap failed', e);
+}
 
+fetchData();
 
-  // group ONLY unacknowledged alerts in ACTIVE view
+fetchAlerts();
 
-  const groups = {};
-
+showActiveAlerts();
   alerts.forEach(a => {
 
     if (!a.acknowledged) {
@@ -2073,5 +2041,29 @@ fetchData();
 fetchAlerts();
 
 showActiveAlerts();
+
+// If we land on the settings page with #safe-paths, initialize drawing map and render saved paths
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    if (window.location.pathname && window.location.pathname.endsWith('settings.html') && window.location.hash === '#safe-paths') {
+      if (!drawingMapInitialized && typeof initializeDrawingMap === 'function') {
+        initializeDrawingMap();
+        drawingMapInitialized = true;
+      }
+      // center map if marker exists
+      if (typeof drawingMap !== 'undefined' && drawingMap) {
+        if (marker && marker.getLatLng) {
+          const pos = marker.getLatLng();
+          drawingMap.setView([pos.lat, pos.lng], 16);
+        } else {
+          drawingMap.setView([36.9741, -122.0308], 16);
+        }
+      }
+      if (typeof renderSavedPathsList === 'function') renderSavedPathsList();
+    }
+  } catch (e) {
+    console.warn('Safe paths init failed', e);
+  }
+});
 
 
