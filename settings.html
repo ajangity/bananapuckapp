@@ -56,6 +56,146 @@
 </header>
 
 <main>
+  <!-- USER BIOMETRICS SECTION -->
+  <section style="background: white; padding: 25px; border-radius: 10px; border-left: 5px solid #f5c400; margin-bottom: 30px;">
+    <h2 style="margin-top: 0; color: #333;">👤 User Profile & Biometrics</h2>
+    <p style="color: #666; margin-bottom: 20px;">Update your personal information to help the app provide personalized health recommendations.</p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+      <!-- Basic Information -->
+      <div>
+        <h4 style="margin-top: 0; color: #333; border-bottom: 2px solid #f5c400; padding-bottom: 10px;">Basic Information</h4>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Name</label>
+          <input type="text" id="userName" placeholder="Enter your name" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Age (years)</label>
+          <input type="number" id="userAge" placeholder="e.g., 65" min="0" max="150" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Gender</label>
+          <select id="userGender" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            <option value="">Select gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+            <option value="prefer-not">Prefer not to say</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Date of Birth</label>
+          <input type="date" id="userDOB" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+        </div>
+      </div>
+
+      <!-- Physical Measurements -->
+      <div>
+        <h4 style="margin-top: 0; color: #333; border-bottom: 2px solid #27ae60; padding-bottom: 10px;">Physical Measurements</h4>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Height</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="number" id="userHeight" placeholder="e.g., 170" min="0" max="300" step="0.1" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+            <select id="heightUnit" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+              <option value="cm">cm</option>
+              <option value="inches">inches</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Weight</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="number" id="userWeight" placeholder="e.g., 70" min="0" max="500" step="0.1" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+            <select id="weightUnit" style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+              <option value="kg">kg</option>
+              <option value="lbs">lbs</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Blood Type</label>
+          <select id="userBloodType" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            <option value="">Select blood type</option>
+            <option value="O-">O-</option>
+            <option value="O+">O+</option>
+            <option value="A-">A-</option>
+            <option value="A+">A+</option>
+            <option value="B-">B-</option>
+            <option value="B+">B+</option>
+            <option value="AB-">AB-</option>
+            <option value="AB+">AB+</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Health Metrics -->
+    <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+      <h4 style="margin-top: 0; color: #333; border-bottom: 2px solid #e74c3c; padding-bottom: 10px;">Health Metrics</h4>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+        <div>
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Resting Heart Rate (bpm)</label>
+          <input type="number" id="userRestingHR" placeholder="e.g., 70" min="0" max="200" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+        </div>
+
+        <div>
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Activity Level</label>
+          <select id="userActivityLevel" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+            <option value="">Select activity level</option>
+            <option value="sedentary">Sedentary (little exercise)</option>
+            <option value="light">Light (1-3 days/week)</option>
+            <option value="moderate">Moderate (3-5 days/week)</option>
+            <option value="active">Active (6-7 days/week)</option>
+            <option value="very-active">Very Active (2x daily exercise)</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Daily Steps Goal</label>
+          <input type="number" id="userStepsGoal" placeholder="e.g., 10000" min="0" max="100000" step="100" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Medical Information -->
+    <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+      <h4 style="margin-top: 0; color: #333; border-bottom: 2px solid #9b59b6; padding-bottom: 10px;">Medical Information (Optional)</h4>
+      
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Known Allergies</label>
+        <textarea id="userAllergies" placeholder="e.g., Peanuts, Penicillin" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; resize: vertical; min-height: 50px;"></textarea>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Current Medications</label>
+        <textarea id="userMedications" placeholder="e.g., Aspirin 100mg daily, Lisinopril 10mg" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; resize: vertical; min-height: 50px;"></textarea>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Medical Conditions</label>
+        <textarea id="userConditions" placeholder="e.g., Diabetes, High Blood Pressure, Arthritis" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; resize: vertical; min-height: 50px;"></textarea>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Emergency Contact Name</label>
+        <input type="text" id="userEmergencyName" placeholder="Enter name" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+      </div>
+
+      <div>
+        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #555;">Emergency Contact Phone</label>
+        <input type="tel" id="userEmergencyPhone" placeholder="Enter phone number" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+      </div>
+    </div>
+  </section>
+
   <section>
     <h3>Data Refresh Rate</h3>
     <select id="refreshRate">
@@ -125,16 +265,90 @@
     }
   })();
 
+  // Load user biometrics on page open
+  (function loadUserBiometrics() {
+    const stored = localStorage.getItem('userBiometrics');
+    if (!stored) return;
+
+    try {
+      const biometrics = JSON.parse(stored);
+      
+      // Basic Information
+      if (biometrics.name) document.getElementById('userName').value = biometrics.name;
+      if (biometrics.age) document.getElementById('userAge').value = biometrics.age;
+      if (biometrics.gender) document.getElementById('userGender').value = biometrics.gender;
+      if (biometrics.dob) document.getElementById('userDOB').value = biometrics.dob;
+      
+      // Physical Measurements
+      if (biometrics.height) document.getElementById('userHeight').value = biometrics.height;
+      if (biometrics.heightUnit) document.getElementById('heightUnit').value = biometrics.heightUnit;
+      if (biometrics.weight) document.getElementById('userWeight').value = biometrics.weight;
+      if (biometrics.weightUnit) document.getElementById('weightUnit').value = biometrics.weightUnit;
+      if (biometrics.bloodType) document.getElementById('userBloodType').value = biometrics.bloodType;
+      
+      // Health Metrics
+      if (biometrics.restingHR) document.getElementById('userRestingHR').value = biometrics.restingHR;
+      if (biometrics.activityLevel) document.getElementById('userActivityLevel').value = biometrics.activityLevel;
+      if (biometrics.stepsGoal) document.getElementById('userStepsGoal').value = biometrics.stepsGoal;
+      
+      // Medical Information
+      if (biometrics.allergies) document.getElementById('userAllergies').value = biometrics.allergies;
+      if (biometrics.medications) document.getElementById('userMedications').value = biometrics.medications;
+      if (biometrics.conditions) document.getElementById('userConditions').value = biometrics.conditions;
+      if (biometrics.emergencyName) document.getElementById('userEmergencyName').value = biometrics.emergencyName;
+      if (biometrics.emergencyPhone) document.getElementById('userEmergencyPhone').value = biometrics.emergencyPhone;
+      
+      console.log('User biometrics loaded successfully');
+    } catch (error) {
+      console.warn('Failed to load user biometrics:', error);
+    }
+  })();
+
   function saveSettings() {
     const refreshIntervalMs =
-      parseInt(document.getElementById("refreshRate").value);
+      parseInt(document.getElementById('refreshRate').value);
 
+    // Save refresh rate
     localStorage.setItem(
       SETTINGS_KEY,
       JSON.stringify({ refreshIntervalMs })
     );
 
-    window.location.href = "index.html";
+    // Save user biometrics
+    const userBiometrics = {
+      // Basic Information
+      name: document.getElementById('userName').value,
+      age: parseInt(document.getElementById('userAge').value) || null,
+      gender: document.getElementById('userGender').value,
+      dob: document.getElementById('userDOB').value,
+      
+      // Physical Measurements
+      height: parseFloat(document.getElementById('userHeight').value) || null,
+      heightUnit: document.getElementById('heightUnit').value,
+      weight: parseFloat(document.getElementById('userWeight').value) || null,
+      weightUnit: document.getElementById('weightUnit').value,
+      bloodType: document.getElementById('userBloodType').value,
+      
+      // Health Metrics
+      restingHR: parseInt(document.getElementById('userRestingHR').value) || null,
+      activityLevel: document.getElementById('userActivityLevel').value,
+      stepsGoal: parseInt(document.getElementById('userStepsGoal').value) || null,
+      
+      // Medical Information
+      allergies: document.getElementById('userAllergies').value,
+      medications: document.getElementById('userMedications').value,
+      conditions: document.getElementById('userConditions').value,
+      emergencyName: document.getElementById('userEmergencyName').value,
+      emergencyPhone: document.getElementById('userEmergencyPhone').value,
+      
+      // Metadata
+      lastUpdated: new Date().toISOString()
+    };
+
+    localStorage.setItem('userBiometrics', JSON.stringify(userBiometrics));
+    
+    alert('Settings and biometrics saved successfully!');
+    window.location.href = 'index.html';
   }
 </script>
 
