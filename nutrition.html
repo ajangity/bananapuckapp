@@ -800,38 +800,110 @@
   function openNativeCamera() {
     // Trigger the hidden file input to open native camera
     const input = document.getElementById('cameraInput');
+    if (!input) {
+      console.error('Camera input element not found');
+      return;
+    }
+    console.log('Opening native camera...');
     input.click();
   }
 
-  // Handle camera photo capture
-  document.getElementById('cameraInput').addEventListener('change', function(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+  // Handle camera photo capture - attach at DOM ready
+  function attachCameraListener() {
+    const input = document.getElementById('cameraInput');
+    if (!input) {
+      console.error('Camera input element not found for listener attachment');
+      return;
+    }
     
-    // Read file as data URL
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      capturedImage = e.target.result;
+    input.addEventListener('change', function(event) {
+      console.log('Camera input change event fired');
+      const file = event.target.files[0];
+      if (!file) {
+        console.log('No file selected');
+        return;
+      }
       
-      // Display preview
-      const preview = document.getElementById('capturedImagePreview');
-      const message = document.getElementById('noCameraMessage');
-      preview.src = capturedImage;
-      preview.style.display = 'block';
-      message.style.display = 'none';
+      console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
       
-      // Update buttons
-      document.getElementById('openCameraBtn').style.display = 'none';
-      document.getElementById('processImageBtn').style.display = 'inline-block';
-      document.getElementById('retakePhotoBtn').style.display = 'inline-block';
-    };
-    reader.readAsDataURL(file);
-  });
+      // Read file as data URL
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        console.log('File loaded as data URL');
+        capturedImage = e.target.result;
+        
+        // Display preview
+        const preview = document.getElementById('capturedImagePreview');
+        const message = document.getElementById('noCameraMessage');
+        if (preview && message) {
+          preview.src = capturedImage;
+          preview.style.display = 'block';
+          message.style.display = 'none';
+          console.log('Preview displayed');
+        }
+        
+        // Update buttons
+        const openBtn = document.getElementById('openCameraBtn');
+        const processBtn = document.getElementById('processImageBtn');
+        const retakeBtn = document.getElementById('retakePhotoBtn');
+        if (openBtn && processBtn && retakeBtn) {
+          openBtn.style.display = 'none';
+          processBtn.style.display = 'inline-block';
+          retakeBtn.style.display = 'inline-block';
+          console.log('Buttons updated');
+        }
+      };
+      reader.onerror = function(error) {
+        console.error('FileReader error:', error);
+      };
+      reader.readAsDataURL(file);
+    });
+    console.log('Camera listener attached successfully');
+  }
+
+  // Attach listener when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachCameraListener);
+  } else {
+    attachCameraListener();
+  }
 
   function retakePhoto() {
+    console.log('Retaking photo...');
     capturedImage = null;
-    document.getElementById('cameraInput').value = '';
-    openNativeCamera();
+    
+    // Reset file input - use multiple methods for compatibility
+    const input = document.getElementById('cameraInput');
+    if (input) {
+      input.value = '';
+      // Force reset by creating new input
+      try {
+        input.type = '';
+        input.type = 'file';
+      } catch (e) {
+        console.log('Input type reset not supported, using value clear');
+      }
+    }
+    
+    // Reset UI
+    const preview = document.getElementById('capturedImagePreview');
+    const message = document.getElementById('noCameraMessage');
+    const openBtn = document.getElementById('openCameraBtn');
+    const processBtn = document.getElementById('processImageBtn');
+    const retakeBtn = document.getElementById('retakePhotoBtn');
+    
+    if (preview && message) {
+      preview.style.display = 'none';
+      message.style.display = 'block';
+    }
+    if (openBtn && processBtn && retakeBtn) {
+      openBtn.style.display = 'inline-block';
+      processBtn.style.display = 'none';
+      retakeBtn.style.display = 'none';
+    }
+    
+    // Open camera again
+    setTimeout(() => openNativeCamera(), 100);
   }
 
   async function processImage() {
