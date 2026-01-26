@@ -746,6 +746,36 @@
   }
 
   function openCameraModal() {
+    // Reset modal to initial state
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    const placeholder = document.getElementById('cameraPlaceholder');
+    const startBtn = document.getElementById('startCameraBtn');
+    const captureBtn = document.getElementById('capturePhotoBtn');
+    const processBtn = document.getElementById('processImageBtn');
+    const retakeBtn = document.getElementById('retakPhotoBtn');
+    const processingInd = document.getElementById('processingIndicator');
+    
+    // Clear canvas
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Reset display states
+    video.style.display = 'none';
+    canvas.style.display = 'none';
+    placeholder.style.display = 'flex';
+    processingInd.style.display = 'none';
+    
+    // Reset button states
+    startBtn.style.display = 'inline-block';
+    captureBtn.style.display = 'none';
+    processBtn.style.display = 'none';
+    retakeBtn.style.display = 'none';
+    
+    // Stop any existing camera stream
+    stopCamera();
+    
+    // Show modal
     document.getElementById('cameraModal').style.display = 'block';
   }
 
