@@ -66,8 +66,20 @@ let lastActivityChangeTime = Date.now();
 
 let activityConfirmationCount = 0;
 
+// Number of consecutive detections required before confirming activity change
+const requiredConfirmations = 3;
 
-/* ---------- ACTIVITY DETECTION ---------- */
+// Minimum duration (ms) each activity must last before switching to new one
+const ACTIVITY_MIN_DURATIONS = {
+  sleeping: 30 * 60 * 1000,      // 30 minutes
+  resting: 5 * 60 * 1000,        // 5 minutes
+  walking: 2 * 60 * 1000,        // 2 minutes
+  exercising: 5 * 60 * 1000,     // 5 minutes
+  running: 5 * 60 * 1000,        // 5 minutes
+  showering: 10 * 60 * 1000      // 10 minutes
+};
+
+
 
 function detectActivity(hr, breathing, accelX, accelY, accelZ) {
 
@@ -1205,7 +1217,10 @@ function updateSensor(key, value, min, max, unit) {
 
   );
 
-
+  if (!card) {
+    console.error('Sensor card not found for key:', key);
+    return;
+  }
 
   card.classList.remove("safe", "warning", "danger");
 
@@ -1229,13 +1244,19 @@ function updateSensor(key, value, min, max, unit) {
 
 
 
-  document.getElementById(
+  const valueEl = document.getElementById(
 
     key === "hr" ? "hrValue" :
 
     key === "breathing" ? "brValue" : "tempValue"
 
-  ).innerText = `${value.toFixed(1)} ${unit}`;
+  );
+  
+  if (valueEl) {
+    valueEl.innerText = `${parseFloat(value).toFixed(1)} ${unit}`;
+  } else {
+    console.error('Value element not found for key:', key);
+  }
 
 
 
