@@ -354,25 +354,89 @@
 <section>
   <h2>Today's Nutrition Summary</h2>
   <div class="grid">
+    <!-- Calories Card -->
     <div class="card">
-      <div class="card-title">Meals Logged</div>
-      <div class="card-value" id="mealsCount">0</div>
-      <div class="card-label">meals today</div>
+      <div class="card-title">Calories</div>
+      <div class="card-value" id="caloriesPercent">0%</div>
+      <div class="card-label"><span id="caloriesCurrent">0</span> / <span id="caloriesTarget">2000</span> kcal</div>
     </div>
+    <!-- Protein Card -->
+    <div class="card">
+      <div class="card-title">Protein</div>
+      <div class="card-value" id="proteinPercent">0%</div>
+      <div class="card-label"><span id="proteinCurrent">0</span> / <span id="proteinTarget">50</span> g</div>
+    </div>
+    <!-- Carbs Card -->
+    <div class="card">
+      <div class="card-title">Carbs</div>
+      <div class="card-value" id="carbsPercent">0%</div>
+      <div class="card-label"><span id="carbsCurrent">0</span> / <span id="carbsTarget">300</span> g</div>
+    </div>
+    <!-- Sugar Card -->
+    <div class="card">
+      <div class="card-title">Sugar</div>
+      <div class="card-value" id="sugarPercent">0%</div>
+      <div class="card-label"><span id="sugarCurrent">0</span> / <span id="sugarTarget">25</span> g</div>
+    </div>
+    <!-- Fats Card -->
+    <div class="card">
+      <div class="card-title">Fats</div>
+      <div class="card-value" id="fatsPercent">0%</div>
+      <div class="card-label"><span id="fatsCurrent">0</span> / <span id="fatsTarget">65</span> g</div>
+    </div>
+    <!-- Fiber Card -->
+    <div class="card">
+      <div class="card-title">Fiber</div>
+      <div class="card-value" id="fiberPercent">0%</div>
+      <div class="card-label"><span id="fiberCurrent">0</span> / <span id="fiberTarget">25</span> g</div>
+    </div>
+    <!-- Iron Card -->
+    <div class="card">
+      <div class="card-title">Iron</div>
+      <div class="card-value" id="ironPercent">0%</div>
+      <div class="card-label"><span id="ironCurrent">0</span> / <span id="ironTarget">18</span> mg</div>
+    </div>
+    <!-- Calcium Card -->
+    <div class="card">
+      <div class="card-title">Calcium</div>
+      <div class="card-value" id="calciumPercent">0%</div>
+      <div class="card-label"><span id="calciumCurrent">0</span> / <span id="calciumTarget">1000</span> mg</div>
+    </div>
+    <!-- Vitamin A Card -->
+    <div class="card">
+      <div class="card-title">Vitamin A</div>
+      <div class="card-value" id="vitaminAPercent">0%</div>
+      <div class="card-label"><span id="vitaminACurrent">0</span> / <span id="vitaminATarget">900</span> mcg</div>
+    </div>
+    <!-- Vitamin C Card -->
+    <div class="card">
+      <div class="card-title">Vitamin C</div>
+      <div class="card-value" id="vitaminCPercent">0%</div>
+      <div class="card-label"><span id="vitaminCCurrent">0</span> / <span id="vitaminCTarget">90</span> mcg</div>
+    </div>
+    <!-- B12 Card -->
+    <div class="card">
+      <div class="card-title">Vitamin B12</div>
+      <div class="card-value" id="b12Percent">0%</div>
+      <div class="card-label"><span id="b12Current">0</span> / <span id="b12Target">2.4</span> mcg</div>
+    </div>
+    <!-- Folate Card -->
+    <div class="card">
+      <div class="card-title">Folate</div>
+      <div class="card-value" id="folatePercent">0%</div>
+      <div class="card-label"><span id="folateCurrent">0</span> / <span id="folateTarget">400</span> mcg</div>
+    </div>
+    <!-- Potassium Card -->
+    <div class="card">
+      <div class="card-title">Potassium</div>
+      <div class="card-value" id="potassiumPercent">0%</div>
+      <div class="card-label"><span id="potassiumCurrent">0</span> / <span id="potassiumTarget">3500</span> mcg</div>
+    </div>
+    <!-- Water Card -->
     <div class="card">
       <div class="card-title">Water Intake</div>
-      <div class="card-value" id="waterCount">0</div>
-      <div class="card-label">cups today</div>
-    </div>
-    <div class="card">
-      <div class="card-title">Total Calories</div>
-      <div class="card-value" id="totalCalories">0</div>
-      <div class="card-label">kcal</div>
-    </div>
-    <div class="card">
-      <div class="card-title">Healthy Choice %</div>
-      <div class="card-value" id="healthyPercent">0%</div>
-      <div class="card-label">today</div>
+      <div class="card-value" id="waterPercent">0%</div>
+      <div class="card-label"><span id="waterCurrent">0</span> / <span id="waterTarget">8</span> cups</div>
     </div>
   </div>
 </section>
@@ -448,11 +512,51 @@
       <input type="text" id="foodItems" placeholder="e.g., Grilled chicken, rice, broccoli">
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label>Calories (optional)</label>
-        <input type="number" id="calories" placeholder="e.g., 600" min="0">
+    <div style="background: #f0f0f0; padding: 15px; border-radius: 6px; margin: 15px 0;">
+      <h4 style="margin-top: 0; margin-bottom: 12px; color: #333;">Nutritional Information (optional)</h4>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Calories (kcal)</label>
+          <input type="number" id="calories" placeholder="600" min="0">
+        </div>
+        <div class="form-group">
+          <label>Protein (g)</label>
+          <input type="number" id="protein" placeholder="25" min="0" step="0.1">
+        </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Carbs (g)</label>
+          <input type="number" id="carbs" placeholder="50" min="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>Sugar (g)</label>
+          <input type="number" id="sugar" placeholder="5" min="0" step="0.1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fats (g)</label>
+          <input type="number" id="fats" placeholder="15" min="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>Fiber (g)</label>
+          <input type="number" id="fiber" placeholder="3" min="0" step="0.1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Iron (mg)</label>
+          <input type="number" id="iron" placeholder="2.5" min="0" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>Calcium (mg)</label>
+          <input type="number" id="calcium" placeholder="200" min="0" step="0.1">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row">
       <div class="form-group">
         <label>Healthiness Level</label>
         <select id="mealHealthiness">
@@ -1060,7 +1164,7 @@
   }
 
   function autoFillAndLogFromBarcode(productName, calories, brand, barcode) {
-    // Auto-fill the form
+    // Auto-fill the form with barcode product data
     document.getElementById('foodItems').value = productName;
     document.getElementById('calories').value = calories > 0 ? calories : '';
     
@@ -1226,7 +1330,7 @@
   }
 
   function autoFillAndLogFromLabel(nutritionData) {
-    // Auto-fill the form
+    // Auto-fill the form with OCR extracted nutrition data
     if (nutritionData.productName) {
       document.getElementById('foodItems').value = nutritionData.productName;
     } else {
@@ -1235,6 +1339,15 @@
     
     if (nutritionData.calories > 0) {
       document.getElementById('calories').value = nutritionData.calories;
+    }
+    if (nutritionData.protein > 0) {
+      document.getElementById('protein').value = nutritionData.protein;
+    }
+    if (nutritionData.carbs > 0) {
+      document.getElementById('carbs').value = nutritionData.carbs;
+    }
+    if (nutritionData.fat > 0) {
+      document.getElementById('fats').value = nutritionData.fat;
     }
     
     // Set healthiness
@@ -1372,7 +1485,6 @@
     const mealType = document.getElementById('mealType').value;
     const mealTime = document.getElementById('mealTime').value;
     const foodItems = document.getElementById('foodItems').value;
-    const calories = document.getElementById('calories').value;
     const healthiness = document.getElementById('mealHealthiness').value;
 
     if (!mealType || !foodItems || !healthiness) {
@@ -1385,9 +1497,17 @@
       time: mealTime,
       type: mealType,
       foods: foodItems,
-      calories: calories ? parseInt(calories) : 0,
       healthiness: healthiness,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // Macronutrients
+      calories: parseFloat(document.getElementById('calories').value) || 0,
+      protein: parseFloat(document.getElementById('protein').value) || 0,
+      carbs: parseFloat(document.getElementById('carbs').value) || 0,
+      sugar: parseFloat(document.getElementById('sugar').value) || 0,
+      fats: parseFloat(document.getElementById('fats').value) || 0,
+      fiber: parseFloat(document.getElementById('fiber').value) || 0,
+      iron: parseFloat(document.getElementById('iron').value) || 0,
+      calcium: parseFloat(document.getElementById('calcium').value) || 0
     };
 
     let meals = JSON.parse(localStorage.getItem('meals') || '[]');
@@ -1403,6 +1523,13 @@
     document.getElementById('mealType').value = '';
     document.getElementById('foodItems').value = '';
     document.getElementById('calories').value = '';
+    document.getElementById('protein').value = '';
+    document.getElementById('carbs').value = '';
+    document.getElementById('sugar').value = '';
+    document.getElementById('fats').value = '';
+    document.getElementById('fiber').value = '';
+    document.getElementById('iron').value = '';
+    document.getElementById('calcium').value = '';
     document.getElementById('mealHealthiness').value = '';
     const now = new Date();
     document.getElementById('mealTime').value = now.toTimeString().slice(0,5);
@@ -1441,21 +1568,98 @@
     const todayMeals = meals.filter(m => m.date === today);
     const todayWater = waterLog.filter(w => w.date === today);
 
-    // Calculate stats
-    const mealsCount = todayMeals.length;
-    const waterCount = todayWater.reduce((sum, w) => sum + w.cups, 0);
-    const totalCals = todayMeals.reduce((sum, m) => sum + m.calories, 0);
-    const healthyMeals = todayMeals.filter(m => m.healthiness === 'healthy').length;
-    const healthyPercent = mealsCount > 0 ? Math.round((healthyMeals / mealsCount) * 100) : 0;
+    // Calculate daily totals
+    const totals = {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      sugar: 0,
+      fats: 0,
+      fiber: 0,
+      iron: 0,
+      calcium: 0,
+      vitaminA: 0,
+      vitaminC: 0,
+      b12: 0,
+      folate: 0,
+      potassium: 0
+    };
 
-    document.getElementById('mealsCount').textContent = mealsCount;
-    document.getElementById('waterCount').textContent = waterCount;
-    document.getElementById('totalCalories').textContent = totalCals;
-    document.getElementById('healthyPercent').textContent = healthyPercent + '%';
+    // Daily targets/recommendations
+    const targets = {
+      calories: 2000,
+      protein: 50,
+      carbs: 300,
+      sugar: 25,
+      fats: 65,
+      fiber: 25,
+      iron: 18,
+      calcium: 1000,
+      vitaminA: 900,
+      vitaminC: 90,
+      b12: 2.4,
+      folate: 400,
+      potassium: 3500
+    };
+
+    // Sum up macros from meals
+    todayMeals.forEach(meal => {
+      totals.calories += meal.calories || 0;
+      totals.protein += meal.protein || 0;
+      totals.carbs += meal.carbs || 0;
+      totals.sugar += meal.sugar || 0;
+      totals.fats += meal.fats || 0;
+      totals.fiber += meal.fiber || 0;
+      totals.iron += meal.iron || 0;
+      totals.calcium += meal.calcium || 0;
+    });
+
+    // Calculate water total
+    const totalWater = todayWater.reduce((sum, w) => sum + w.cups, 0);
+
+    // Update UI with percentages and amounts
+    updateNutritionCard('calories', totals.calories, targets.calories, 'kcal');
+    updateNutritionCard('protein', totals.protein, targets.protein, 'g');
+    updateNutritionCard('carbs', totals.carbs, targets.carbs, 'g');
+    updateNutritionCard('sugar', totals.sugar, targets.sugar, 'g');
+    updateNutritionCard('fats', totals.fats, targets.fats, 'g');
+    updateNutritionCard('fiber', totals.fiber, targets.fiber, 'g');
+    updateNutritionCard('iron', totals.iron, targets.iron, 'mg');
+    updateNutritionCard('calcium', totals.calcium, targets.calcium, 'mg');
+    updateNutritionCard('vitaminA', totals.vitaminA, targets.vitaminA, 'mcg');
+    updateNutritionCard('vitaminC', totals.vitaminC, targets.vitaminC, 'mcg');
+    updateNutritionCard('b12', totals.b12, targets.b12, 'mcg');
+    updateNutritionCard('folate', totals.folate, targets.folate, 'mcg');
+    updateNutritionCard('potassium', totals.potassium, targets.potassium, 'mcg');
+    updateNutritionCard('water', totalWater, 8, 'cups');
 
     renderTodayMeals(todayMeals);
     renderTodayWater(todayWater);
     renderMealHistory(meals);
+  }
+
+  function updateNutritionCard(nutrient, current, target, unit) {
+    const percentage = target > 0 ? Math.round((current / target) * 100) : 0;
+    const percentId = nutrient + 'Percent';
+    const currentId = nutrient + 'Current';
+    const targetId = nutrient + 'Target';
+
+    const percentElem = document.getElementById(percentId);
+    const currentElem = document.getElementById(currentId);
+    const targetElem = document.getElementById(targetId);
+
+    if (percentElem) {
+      percentElem.textContent = percentage + '%';
+    }
+    if (currentElem) {
+      // Format decimal places appropriately
+      const displayCurrent = (current % 1 !== 0) ? current.toFixed(1) : Math.round(current);
+      currentElem.textContent = displayCurrent;
+    }
+    if (targetElem) {
+      const displayTarget = (target % 1 !== 0) ? target.toFixed(1) : Math.round(target);
+      targetElem.textContent = displayTarget;
+    }
   }
 
   function renderTodayMeals(todayMeals) {
