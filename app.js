@@ -606,64 +606,60 @@ function initializeDrawingMap() {
     return;
   }
 
+  // Skip if already initialized
+  if (drawingMapInitialized) {
+    console.log('Drawing map already initialized');
+    return;
+  }
+
   // Get current position or use default
-
   let initialLat = 36.9741;
-
   let initialLon = -122.0308;
-
   let initialZoom = 16;
 
-  
-
-  if (marker && marker.getLatLng()) {
-
-    const pos = marker.getLatLng();
-
-    initialLat = pos.lat;
-
-    initialLon = pos.lng;
-
+  // Try to use marker position if available, otherwise use default
+  if (typeof marker !== 'undefined' && marker && typeof marker.getLatLng === 'function') {
+    try {
+      const pos = marker.getLatLng();
+      initialLat = pos.lat;
+      initialLon = pos.lng;
+      console.log('Using marker position:', initialLat, initialLon);
+    } catch (e) {
+      console.log('Could not get marker position, using default:', e.message);
+    }
+  } else {
+    console.log('Marker not available, using default location');
   }
   
   try {
+    console.log('Creating Leaflet map with center:', [initialLat, initialLon], 'zoom:', initialZoom);
     drawingMap = L.map("drawingMap", {
-
       center: [initialLat, initialLon],
-
       zoom: initialZoom,
-
       zoomControl: true
-
     });
 
+    console.log('Map created, adding tile layer...');
     
-
     // Add tile layer
-
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-
       attribution: '&copy; OpenStreetMap contributors'
-
     }).addTo(drawingMap);
 
+    console.log('Tile layer added, adding click handler...');
     
-
     // Add click handler for drawing
-
     drawingMap.on('click', function(e) {
-
       if (isDrawing) {
-
         addPointToPath(e.latlng);
-
       }
-
     });
     
-    console.log('✓ Drawing map initialized successfully');
+    drawingMapInitialized = true;
+    console.log('✓ Drawing map initialized successfully at', initialLat, initialLon);
   } catch (e) {
     console.error('Failed to initialize drawing map:', e);
+    console.error('Error details:', e.message, e.stack);
   }
 }
 
@@ -1083,21 +1079,31 @@ async function fetchData() {
       }
     }
 
-    // GPS
-    if (data.gps && data.gps.lat !== null && data.gps.lon !== null) {
-      try {
-        const gpsEl = document.getElementById("gpsValue");
-        if (gpsEl) {
-          gpsEl.innerText = `${data.gps.lat.toFixed(5)}, ${data.gps.lon.toFixed(5)} (±${data.gps.accuracy}m)`;
+    // GPS - check both 'gps' and 'location' fields (tester sends 'location')
+    try {
+      const gpsEl = document.getElementById("gpsValue");
+      if (gpsEl) {
+        // Support both 'gps' (server standard) and 'location' (tester sends) field names
+        const gpsData = data.gps || data.location;
+        
+        if (gpsData && gpsData.lat !== null && gpsData.lon !== null) {
+          gpsEl.innerText = `${gpsData.lat.toFixed(5)}, ${gpsData.lon.toFixed(5)} (±${gpsData.accuracy}m)`;
+          console.log('✓ GPS updated:', gpsData.lat, gpsData.lon);
+          
+          // Update map marker
+          if (marker && map) {
+            marker.setLatLng([gpsData.lat, gpsData.lon]);
+            map.setView([gpsData.lat, gpsData.lon], 15);
+            console.log('✓ Map moved to GPS location');
+          }
+        } else {
+          // GPS data not available
+          gpsEl.innerText = "--";
+          console.warn('GPS data not available:', gpsData);
         }
-        if (marker && map) {
-          marker.setLatLng([data.gps.lat, data.gps.lon]);
-          map.setView([data.gps.lat, data.gps.lon], 15);
-          console.log('✓ GPS updated and map moved');
-        }
-      } catch (e) {
-        console.error('GPS update error:', e.message);
       }
+    } catch (e) {
+      console.error('GPS update error:', e.message);
     }
 
     // Water

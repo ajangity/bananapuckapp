@@ -142,27 +142,42 @@
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
-<script src="app.js?v=2025-01-25-2"></script>
+<script src="app.js?v=2025-01-25-4"></script>
 
 <script>
   // Initialize drawing map and load safe paths on settings page
   window.addEventListener('load', function() {
-    console.log('Settings page loaded, Leaflet:', typeof L !== 'undefined');
+    console.log('=== SETTINGS PAGE LOAD EVENT ===');
+    console.log('Leaflet:', typeof L !== 'undefined');
+    console.log('L object:', typeof L);
     
     // Load safe paths from localStorage
     if (typeof loadSafePaths === 'function') {
+      console.log('Calling loadSafePaths');
       loadSafePaths();
+    } else {
+      console.error('loadSafePaths function not found!');
     }
     
-    // Initialize the drawing map - use load instead of DOMContentLoaded
+    // Initialize the drawing map
     if (typeof initializeDrawingMap === 'function') {
       console.log('Calling initializeDrawingMap from settings page');
-      initializeDrawingMap();
+      try {
+        initializeDrawingMap();
+        console.log('initializeDrawingMap completed');
+      } catch (e) {
+        console.error('Error calling initializeDrawingMap:', e.message, e.stack);
+      }
+    } else {
+      console.error('initializeDrawingMap function not found!');
     }
     
     // Render the saved paths list
     if (typeof renderSavedPathsList === 'function') {
+      console.log('Calling renderSavedPathsList');
       renderSavedPathsList();
+    } else {
+      console.error('renderSavedPathsList function not found!');
     }
   });
 </script>
