@@ -251,6 +251,7 @@ function updateActivityStatus(detectedActivity) {
 
 
 function applyRefreshIntervals() {
+  console.log('Applying refresh intervals. refreshIntervalMs:', refreshIntervalMs);
 
   if (dataIntervalId) clearInterval(dataIntervalId);
 
@@ -261,6 +262,8 @@ function applyRefreshIntervals() {
   dataIntervalId = setInterval(fetchData, refreshIntervalMs);
 
   alertsIntervalId = setInterval(fetchAlerts, 3000);
+  
+  console.log('✓ Refresh intervals set. Data interval:', dataIntervalId, 'Alerts interval:', alertsIntervalId);
 
 }
 
@@ -364,12 +367,6 @@ function pruneOldData() {
 
 
 
-function loadSettings() {
-
-  // Previously opened a modal on index; now navigate to the settings page section
-  window.location.href = 'settings.html#safe-paths';
-
-}
 
 
 
@@ -419,8 +416,12 @@ function loadSafePaths() {
 
   // Initialize the main map displayed on the dashboard (index.html)
   function initializeMainMap() {
+    console.log('Initializing main map...');
     const mapEl = document.getElementById('map');
-    if (!mapEl) return;
+    if (!mapEl) {
+      console.error('Map element not found');
+      return;
+    }
 
     // Default view
     const initialLat = 36.9741;
@@ -428,7 +429,9 @@ function loadSafePaths() {
 
     // Create map
     try {
+      console.log('Creating Leaflet map...');
       map = L.map('map', { center: [initialLat, initialLon], zoom: 13 });
+      console.log('Map created successfully');
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
@@ -442,8 +445,9 @@ function loadSafePaths() {
 
       // Render any saved safe paths onto the main map
       if (typeof renderSafePaths === 'function') renderSafePaths();
+      console.log('Main map initialized successfully');
     } catch (e) {
-      console.warn('Main map init failed', e);
+      console.error('Main map init failed', e);
     }
   }
 
@@ -472,21 +476,22 @@ function renderSafePaths() {
       if (safePathsLayerGroup) {
         const polyline = L.polyline(path.coordinates, {
 
-        color: "#2ecc71",
+          color: "#2ecc71",
 
-        weight: 5,
+          weight: 5,
 
-        opacity: 0.8,
+          opacity: 0.8,
 
-        dashArray: "10, 5"
+          dashArray: "10, 5"
 
         }).addTo(safePathsLayerGroup);
 
 
 
-      // Add popup with path name
+        // Add popup with path name
 
-      polyline.bindPopup(`<strong>${path.name || `Path ${index + 1}`}</strong><br><button onclick="deleteSafePath(${index})" style="margin-top: 5px; padding: 4px 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>`);
+        polyline.bindPopup(`<strong>${path.name || `Path ${index + 1}`}</strong><br><button onclick="deleteSafePath(${index})" style="margin-top: 5px; padding: 4px 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>`);
+      }
 
     }
 
@@ -586,12 +591,6 @@ function openSafePathsModal() {
 }
 
 
-
-function closeSafePathsModal() {
-
-  // modal removed — no-op
-
-}
 
 
 
@@ -993,8 +992,14 @@ function renderSavedPathsList() {
 
 async function fetchData() {
   try {
+    console.log('Fetching data from:', API);
     const res = await fetch(API);
+    if (!res.ok) {
+      console.error('API error:', res.status, res.statusText);
+      throw new Error(`HTTP ${res.status}`);
+    }
     const data = await res.json();
+    console.log('✓ Data fetched successfully:', data);
 
 
 
@@ -1098,7 +1103,21 @@ async function fetchData() {
 
   pruneOldData();
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error('❌ Error fetching data:', error.message);
+    console.error('Full error:', error);
+    // Set placeholder values instead of crashing
+    const defaultValues = {
+      hrValue: '-- bpm',
+      brValue: '-- breaths/min',
+      tempValue: '-- °F',
+      accelValue: '--',
+      gyroValue: '--',
+      gpsValue: '--'
+    };
+    Object.entries(defaultValues).forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if (el) el.innerText = value;
+    });
   }
 }
 
@@ -1109,6 +1128,10 @@ async function fetchData() {
 async function fetchAlerts() {
   try {
     const res = await fetch(ALERTS_API);
+    if (!res.ok) {
+      console.error('Alerts API error:', res.status, res.statusText);
+      throw new Error(`HTTP ${res.status}`);
+    }
     alerts = (await res.json()).map(a => ({
 
       ...a,
@@ -1380,26 +1403,45 @@ document.addEventListener("click", e => {
 /* ---------- ALERTS ---------- */
 
 // Only run dashboard initialization on index.html, not on settings.html
-if (!window.location.pathname.endsWith('settings.html')) {
+const isSettingsPage = window.location.pathname.includes('settings.html') || window.location.href.includes('settings.html');
+console.log('Current page:', window.location.pathname, 'Is settings:', isSettingsPage);
 
-loadSettings();
+if (!isSettingsPage) {
+  
+  // Wait for DOM to be ready and ensure Leaflet is loaded
+  console.log('Dashboard initialization starting...');
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDashboard);
+  } else {
+    // DOM already loaded
+    setTimeout(initDashboard, 100);
+  }
 
-loadSafePaths();
+  function initDashboard() {
+    console.log('initDashboard called');
+    try {
+      loadSettings();
+      loadSafePaths();
+      applyRefreshIntervals();
 
-applyRefreshIntervals();
+      // Initialize main map if we're on the dashboard (index.html)
+      if (typeof L !== 'undefined') {
+        console.log('Leaflet is available, initializing map');
+        initializeMainMap();
+      } else {
+        console.warn('Leaflet not loaded yet, retrying in 500ms');
+        setTimeout(initDashboard, 500);
+        return;
+      }
 
-// Initialize main map if we're on the dashboard (index.html)
-try {
-  initializeMainMap();
-} catch (e) {
-  console.warn('initializeMainMap failed', e);
-}
-
-fetchData();
-
-fetchAlerts();
-
-showActiveAlerts();
+      console.log('Fetching initial data and alerts');
+      fetchData();
+      fetchAlerts();
+      showActiveAlerts();
+    } catch (e) {
+      console.error('Dashboard initialization error:', e);
+    }
+  }
 
 }
 
@@ -2019,23 +2061,6 @@ function loadSettings() {
 
 
 
-function applyRefreshIntervals() {
-
-  // clear old intervals if they exist
-
-  if (dataIntervalId) clearInterval(dataIntervalId);
-
-  if (alertsIntervalId) clearInterval(alertsIntervalId);
-
-
-
-  // start new intervals using current settings
-
-  dataIntervalId = setInterval(fetchData, refreshIntervalMs);
-
-  alertsIntervalId = setInterval(fetchAlerts, 3000); // alerts can stay fixed
-
-}
 
 
 
