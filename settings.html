@@ -146,21 +146,24 @@
 
 <script>
   // Initialize drawing map and load safe paths on settings page
-  window.addEventListener('DOMContentLoaded', function() {
+  window.addEventListener('load', function() {
+    console.log('Settings page loaded, Leaflet:', typeof L !== 'undefined');
+    
     // Load safe paths from localStorage
     if (typeof loadSafePaths === 'function') {
       loadSafePaths();
     }
-    // Initialize the drawing map
-    setTimeout(function() {
-      if (typeof initializeDrawingMap === 'function') {
-        initializeDrawingMap();
-      }
-      // Render the saved paths list
-      if (typeof renderSavedPathsList === 'function') {
-        renderSavedPathsList();
-      }
-    }, 100);
+    
+    // Initialize the drawing map - use load instead of DOMContentLoaded
+    if (typeof initializeDrawingMap === 'function') {
+      console.log('Calling initializeDrawingMap from settings page');
+      initializeDrawingMap();
+    }
+    
+    // Render the saved paths list
+    if (typeof renderSavedPathsList === 'function') {
+      renderSavedPathsList();
+    }
   });
 </script>
 

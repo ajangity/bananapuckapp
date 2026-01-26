@@ -580,10 +580,19 @@ function openSafePathsModal() {
 function initializeDrawingMap() {
 
   // Create a new map instance in the modal
-
+  console.log('Initializing drawing map...');
   const mapContainer = document.getElementById("drawingMap");
-
   
+  if (!mapContainer) {
+    console.error('drawingMap container not found!');
+    return;
+  }
+
+  // Check if Leaflet is available
+  if (typeof L === 'undefined') {
+    console.error('Leaflet not available');
+    return;
+  }
 
   // Get current position or use default
 
@@ -604,43 +613,46 @@ function initializeDrawingMap() {
     initialLon = pos.lng;
 
   }
-
   
+  try {
+    drawingMap = L.map("drawingMap", {
 
-  drawingMap = L.map("drawingMap", {
+      center: [initialLat, initialLon],
 
-    center: [initialLat, initialLon],
+      zoom: initialZoom,
 
-    zoom: initialZoom,
+      zoomControl: true
 
-    zoomControl: true
+    });
 
-  });
+    
 
-  
+    // Add tile layer
 
-  // Add tile layer
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors'
 
-    attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(drawingMap);
 
-  }).addTo(drawingMap);
+    
 
-  
+    // Add click handler for drawing
 
-  // Add click handler for drawing
+    drawingMap.on('click', function(e) {
 
-  drawingMap.on('click', function(e) {
+      if (isDrawing) {
 
-    if (isDrawing) {
+        addPointToPath(e.latlng);
 
-      addPointToPath(e.latlng);
+      }
 
-    }
-
-  });
-
+    });
+    
+    console.log('✓ Drawing map initialized successfully');
+  } catch (e) {
+    console.error('Failed to initialize drawing map:', e);
+  }
 }
 
 
@@ -984,57 +996,49 @@ async function fetchData() {
     const data = await res.json();
     console.log('✓ Data fetched successfully:', data);
 
-
+    // Validate critical data exists
+    if (data.hr === null || data.breathing === null || data.temp === null) {
+      console.warn('Data missing critical values:', data);
+    }
 
     // Detect current activity based on sensor data
+    if (data.hr !== null && data.breathing !== null && data.accel) {
+      currentStatus = detectActivity(data.hr, data.breathing, data.accel.x || 0, data.accel.y || 0, data.accel.z || 0);
+      updateActivityStatus(currentStatus);
+      updateStatusDisplay();
+    }
 
-    currentStatus = detectActivity(data.hr, data.breathing, data.accel.x, data.accel.y, data.accel.z);
+    // Use CONFIRMED activity for safe ranges, not instant detection
+    const ranges = getSafeRanges(confirmedActivity);
 
-    
-
-    // Update stable activity (requires stability and minimum duration)
-
-    updateActivityStatus(currentStatus);
-
-    updateStatusDisplay();
-
-
-
-  // Use CONFIRMED activity for safe ranges, not instant detection
-
-  const ranges = getSafeRanges(confirmedActivity);
+    // Update sensors with null safety
+    if (data.hr !== null) updateSensor("hr", data.hr, ranges.hr.min, ranges.hr.max, "bpm");
+    if (data.breathing !== null) updateSensor("breathing", data.breathing, ranges.breathing.min, ranges.breathing.max, "breaths/min");
+    if (data.temp !== null) updateSensor("temp", data.temp, ranges.temp.min, ranges.temp.max, "°F");
 
 
+  if (data.accel) {
+    document.getElementById("accelValue").innerText =
+      `X:${(data.accel.x || 0).toFixed(2)} Y:${(data.accel.y || 0).toFixed(2)} Z:${(data.accel.z || 0).toFixed(2)}`;
+  }
 
-  updateSensor("hr", data.hr, ranges.hr.min, ranges.hr.max, "bpm");
-
-  updateSensor("breathing", data.breathing, ranges.breathing.min, ranges.breathing.max, "breaths/min");
-
-  updateSensor("temp", data.temp, ranges.temp.min, ranges.temp.max, "°F");
-
-
-
-  document.getElementById("accelValue").innerText =
-
-    `X:${data.accel.x.toFixed(2)} Y:${data.accel.y.toFixed(2)} Z:${data.accel.z.toFixed(2)}`;
+  if (data.gyro) {
+    document.getElementById("gyroValue").innerText =
+      `X:${(data.gyro.x || 0).toFixed(2)} Y:${(data.gyro.y || 0).toFixed(2)} Z:${(data.gyro.z || 0).toFixed(2)}`;
+  }
 
 
 
-  document.getElementById("gyroValue").innerText =
-
-    `X:${data.gyro.x.toFixed(2)} Y:${data.gyro.y.toFixed(2)} Z:${data.gyro.z.toFixed(2)}`;
-
-
-
-  if (data.gps.lat !== null) {
+  if (data.gps && data.gps.lat !== null && data.gps.lon !== null) {
 
     document.getElementById("gpsValue").innerText =
 
       `${data.gps.lat.toFixed(5)}, ${data.gps.lon.toFixed(5)} (±${data.gps.accuracy}m)`;
 
-    marker.setLatLng([data.gps.lat, data.gps.lon]);
-
-    map.setView([data.gps.lat, data.gps.lon], 15);
+    if (marker && map) {
+      marker.setLatLng([data.gps.lat, data.gps.lon]);
+      map.setView([data.gps.lat, data.gps.lon], 15);
+    }
 
   }
 
