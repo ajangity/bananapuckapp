@@ -1560,6 +1560,133 @@
     alert(`${cups} cups of water logged!`);
   }
 
+  function getPersonalizedNutritionTargets() {
+    // Load user biometrics from localStorage
+    const stored = localStorage.getItem('userBiometrics');
+    let biometrics = {};
+    
+    if (stored) {
+      try {
+        biometrics = JSON.parse(stored);
+      } catch (error) {
+        console.warn('Failed to load biometrics:', error);
+      }
+    }
+
+    // Extract and normalize measurements
+    let weight = biometrics.weight ? parseFloat(biometrics.weight) : null;
+    let height = biometrics.height ? parseFloat(biometrics.height) : null;
+    let age = biometrics.age ? parseInt(biometrics.age) : null;
+    let gender = biometrics.gender || 'female';
+    let activityLevel = biometrics.activityLevel || 'sedentary';
+
+    // Convert to consistent units (kg and cm)
+    if (weight && biometrics.weightUnit === 'lbs') {
+      weight = weight * 0.453592;
+    }
+    if (height && biometrics.heightUnit === 'inches') {
+      height = height * 2.54;
+    }
+
+    // Default targets if no biometrics provided
+    const defaultTargets = {
+      calories: 2000,
+      protein: 50,
+      carbs: 300,
+      sugar: 25,
+      fats: 65,
+      fiber: 25,
+      iron: 18,
+      calcium: 1000,
+      vitaminA: 900,
+      vitaminC: 90,
+      b12: 2.4,
+      folate: 400,
+      potassium: 3500
+    };
+
+    // If insufficient biometrics, return defaults
+    if (!weight || !height || !age) {
+      console.log('Insufficient biometrics for personalization, using defaults');
+      return defaultTargets;
+    }
+
+    // Calculate BMR using Mifflin-St Jeor equation
+    let bmr;
+    if (gender === 'male') {
+      bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+    } else {
+      bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+    }
+
+    // Apply activity level multiplier
+    const activityMultipliers = {
+      'sedentary': 1.2,
+      'light': 1.375,
+      'moderate': 1.55,
+      'active': 1.725,
+      'very-active': 1.9
+    };
+
+    const multiplier = activityMultipliers[activityLevel] || 1.2;
+    const tdee = Math.round(bmr * multiplier);
+
+    // Calculate macronutrient targets
+    // For elderly users: higher protein (1.0-1.2g/kg), balanced carbs/fats
+    const proteinGPerKg = age >= 65 ? 1.2 : 0.8; // Higher protein for elderly
+    const proteinTarget = Math.round(weight * proteinGPerKg);
+    
+    // Calories from protein (4 cal/g)
+    const proteinCalories = proteinTarget * 4;
+    
+    // Remaining calories split 50% carbs, 50% fats
+    const remainingCalories = tdee - proteinCalories;
+    const carbCalories = remainingCalories * 0.5;
+    const fatCalories = remainingCalories * 0.5;
+    
+    const carbsTarget = Math.round(carbCalories / 4); // 4 cal/g
+    const fatsTarget = Math.round(fatCalories / 9); // 9 cal/g
+
+    // Fiber: ~14g per 1000 calories
+    const fiberTarget = Math.round((tdee / 1000) * 14);
+
+    // Sugar: Keep reasonable (around 10% of calories)
+    const sugarTarget = Math.round((tdee * 0.1) / 4);
+
+    // Minerals - age and gender adjusted
+    const ironTarget = gender === 'female' && age < 51 ? 18 : (age >= 51 || gender === 'male' ? 8 : 18);
+    const calciumTarget = age >= 51 ? 1200 : 1000;
+
+    // Vitamins - increase for elderly
+    const vitaminATarget = age >= 65 ? 1000 : 900;
+    const vitaminCTarget = age >= 65 ? 100 : 90;
+    const b12Target = age >= 51 ? 2.4 : 2.4; // Elderly may need supplementation
+    const folateTarget = 400;
+    const potassiumTarget = 3500;
+
+    const personalizedTargets = {
+      calories: tdee,
+      protein: proteinTarget,
+      carbs: carbsTarget,
+      sugar: sugarTarget,
+      fats: fatsTarget,
+      fiber: fiberTarget,
+      iron: ironTarget,
+      calcium: calciumTarget,
+      vitaminA: vitaminATarget,
+      vitaminC: vitaminCTarget,
+      b12: b12Target,
+      folate: folateTarget,
+      potassium: potassiumTarget
+    };
+
+    console.log('Personalized nutrition targets calculated:', personalizedTargets);
+    console.log('User: Age=' + age + ', Weight=' + weight.toFixed(1) + 'kg, Height=' + height.toFixed(1) + 'cm, Gender=' + gender + ', Activity=' + activityLevel);
+    console.log('BMR=' + bmr.toFixed(0) + ', TDEE=' + tdee);
+
+    return personalizedTargets;
+  }
+
   function loadNutritionData() {
     const today = new Date().toISOString().split('T')[0];
     let meals = JSON.parse(localStorage.getItem('meals') || '[]');
@@ -1585,22 +1712,8 @@
       potassium: 0
     };
 
-    // Daily targets/recommendations
-    const targets = {
-      calories: 2000,
-      protein: 50,
-      carbs: 300,
-      sugar: 25,
-      fats: 65,
-      fiber: 25,
-      iron: 18,
-      calcium: 1000,
-      vitaminA: 900,
-      vitaminC: 90,
-      b12: 2.4,
-      folate: 400,
-      potassium: 3500
-    };
+    // Get personalized targets based on user biometrics
+    const targets = getPersonalizedNutritionTargets();
 
     // Sum up macros from meals
     todayMeals.forEach(meal => {
