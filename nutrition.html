@@ -1632,9 +1632,9 @@
     const tdee = Math.round(bmr * multiplier);
 
     // Calculate macronutrient targets
-    // For elderly users: higher protein (1.0-1.2g/kg), balanced carbs/fats
-    const proteinGPerKg = age >= 65 ? 1.2 : 0.8; // Higher protein for elderly
-    const proteinTarget = Math.round(weight * proteinGPerKg);
+    // Protein: 1 gram per pound of bodyweight
+    const weightInPounds = weight * 2.20462;
+    const proteinTarget = Math.round(weightInPounds * 1); // 1g per lb
     
     // Calories from protein (4 cal/g)
     const proteinCalories = proteinTarget * 4;

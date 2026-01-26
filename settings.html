@@ -249,24 +249,8 @@
 </main>
 
 <script>
-  // Load saved settings on page open
-  (function loadSettings() {
-    const stored = localStorage.getItem(SETTINGS_KEY);
-    if (!stored) return;
-
-    try {
-      const settings = JSON.parse(stored);
-      if (settings.refreshIntervalMs) {
-        document.getElementById("refreshRate").value =
-          settings.refreshIntervalMs;
-      }
-    } catch {
-      console.warn("Failed to load settings");
-    }
-  })();
-
-  // Load user biometrics on page open
-  (function loadUserBiometrics() {
+  // Function to load user biometrics
+  function loadUserBiometricsData() {
     const stored = localStorage.getItem('userBiometrics');
     if (!stored) return;
 
@@ -302,7 +286,34 @@
     } catch (error) {
       console.warn('Failed to load user biometrics:', error);
     }
-  })();
+  }
+
+  // Load saved settings and biometrics after DOM is ready
+  function loadAllSettings() {
+    // Load refresh rate setting
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    if (stored) {
+      try {
+        const settings = JSON.parse(stored);
+        if (settings.refreshIntervalMs) {
+          document.getElementById("refreshRate").value = settings.refreshIntervalMs;
+        }
+      } catch {
+        console.warn("Failed to load settings");
+      }
+    }
+    
+    // Load biometrics
+    loadUserBiometricsData();
+  }
+
+  // Run on DOMContentLoaded to ensure DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadAllSettings);
+  } else {
+    // DOM is already loaded
+    loadAllSettings();
+  }
 
   function saveSettings() {
     const refreshIntervalMs =
@@ -347,8 +358,10 @@
 
     localStorage.setItem('userBiometrics', JSON.stringify(userBiometrics));
     
-    alert('Settings and biometrics saved successfully!');
-    window.location.href = 'index.html';
+    alert('✅ Settings and biometrics saved successfully!');
+    
+    // Reload current page to show confirmation that data persisted
+    location.reload();
   }
 </script>
 
