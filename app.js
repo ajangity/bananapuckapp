@@ -585,10 +585,6 @@ function openSafePathsModal() {
 
 }
 
-
-
-
-
 function initializeDrawingMap() {
 
   // Create a new map instance in the modal
@@ -1004,6 +1000,7 @@ async function fetchData() {
     const data = await res.json();
     console.log('✓ Data fetched successfully:', data);
     console.log('HR:', data.hr, 'Breathing:', data.breathing, 'Temp:', data.temp);
+    console.log('GPS fields - gps:', data.gps, 'location:', data.location);
 
     // Validate critical data exists
     if (data.hr === null || data.breathing === null || data.temp === null) {
@@ -1083,8 +1080,11 @@ async function fetchData() {
     try {
       const gpsEl = document.getElementById("gpsValue");
       if (gpsEl) {
+        console.log('Checking GPS data. data.gps:', data.gps, 'data.location:', data.location);
         // Support both 'gps' (server standard) and 'location' (tester sends) field names
         const gpsData = data.gps || data.location;
+        
+        console.log('Using gpsData:', gpsData);
         
         if (gpsData && gpsData.lat !== null && gpsData.lon !== null) {
           gpsEl.innerText = `${gpsData.lat.toFixed(5)}, ${gpsData.lon.toFixed(5)} (±${gpsData.accuracy}m)`;
@@ -1099,7 +1099,7 @@ async function fetchData() {
         } else {
           // GPS data not available
           gpsEl.innerText = "--";
-          console.warn('GPS data not available:', gpsData);
+          console.warn('GPS data not available:', gpsData, 'lat:', gpsData?.lat, 'lon:', gpsData?.lon);
         }
       }
     } catch (e) {
