@@ -66,46 +66,29 @@ let lastActivityChangeTime = Date.now();
 
 let activityConfirmationCount = 0;
 
-  if (safePathsLayerGroup) {
-    safePathsLayerGroup.clearLayers();
 
-    safePaths.forEach((path, index) => {
-      if (path.coordinates && path.coordinates.length > 0) {
-        const polyline = L.polyline(path.coordinates, {
-          color: "#2ecc71",
-          weight: 5,
-          opacity: 0.8,
-          dashArray: "10, 5"
-        }).addTo(safePathsLayerGroup);
+/* ---------- ACTIVITY DETECTION ---------- */
 
-        polyline.bindPopup(`<strong>${path.name || `Path ${index + 1}`}</strong><br><button onclick="deleteSafePath(${index})" style="margin-top: 5px; padding: 4px 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>`);
-      }
-    });
+function detectActivity(hr, breathing, accelX, accelY, accelZ) {
+
+  const accelMag = Math.sqrt(accelX ** 2 + accelY ** 2 + accelZ ** 2);
+
+
+
+  // Sleeping (low vitals, no/minimal movement)
+
+  if (hr < 70 && breathing < 16 && accelMag < 0.2) {
+
+    return "sleeping";
+
   }
 
-  // Also render on drawing map if it exists
-  if (drawingMap) {
-    // Clear existing path layers (but keep markers)
-    drawingMap.eachLayer(function(layer) {
-      if (layer instanceof L.Polyline && layer !== currentPathPolyline) {
-        drawingMap.removeLayer(layer);
-      }
-    });
 
-    // Add saved paths to drawing map
-    safePaths.forEach((path, index) => {
-      if (path.coordinates && path.coordinates.length > 0) {
-        const polyline = L.polyline(path.coordinates, {
-          color: "#2ecc71",
-          weight: 4,
-          opacity: 0.6,
-          dashArray: "10, 5"
-        }).addTo(drawingMap);
 
-        polyline.bindPopup(`<strong>${path.name || `Path ${index + 1}`}</strong>`);
-      }
-    });
-  }
+  // Running (high acceleration, high vitals)
+
+  if (accelMag > 2.0) {
+
     // High movement
 
     if (hr > 110) {
