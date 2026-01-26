@@ -752,10 +752,8 @@
 
   // ==================== CAMERA & OCR FUNCTIONS ====================
 
-  let cameraStream = null;
   let cameraMode = 'barcode'; // 'barcode' or 'label'
-  let currentZoom = 1;
-  let maxZoom = 1;
+  let capturedImage = null;
 
   function openCameraForBarcode() {
     cameraMode = 'barcode';
@@ -769,37 +767,26 @@
 
   function openCameraModal() {
     // Reset modal to initial state
-    const video = document.getElementById('cameraVideo');
-    const canvas = document.getElementById('cameraCanvas');
-    const placeholder = document.getElementById('cameraPlaceholder');
-    const startBtn = document.getElementById('startCameraBtn');
-    const captureBtn = document.getElementById('capturePhotoBtn');
+    const preview = document.getElementById('capturedImagePreview');
+    const message = document.getElementById('noCameraMessage');
+    const openBtn = document.getElementById('openCameraBtn');
     const processBtn = document.getElementById('processImageBtn');
-    const retakeBtn = document.getElementById('retakPhotoBtn');
+    const retakeBtn = document.getElementById('retakePhotoBtn');
     const processingInd = document.getElementById('processingIndicator');
     
-    // Clear canvas
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
     // Reset display states
-    video.style.display = 'none';
-    canvas.style.display = 'none';
-    placeholder.style.display = 'flex';
+    preview.style.display = 'none';
+    message.style.display = 'flex';
     processingInd.style.display = 'none';
     
     // Reset button states
-    startBtn.style.display = 'inline-block';
-    captureBtn.style.display = 'none';
+    openBtn.style.display = 'inline-block';
     processBtn.style.display = 'none';
     retakeBtn.style.display = 'none';
     
-    // Hide zoom controls
-    document.getElementById('zoomControls').style.display = 'none';
-    currentZoom = 1;
-    
-    // Stop any existing camera stream
-    stopCamera();
+    // Clear captured image
+    capturedImage = null;
+    preview.src = '';
     
     // Show modal
     document.getElementById('cameraModal').style.display = 'block';
@@ -807,127 +794,60 @@
 
   function closeCameraModal() {
     document.getElementById('cameraModal').style.display = 'none';
-    stopCamera();
+    capturedImage = null;
   }
 
-  async function startCamera() {
-    const video = document.getElementById('cameraVideo');
-    const placeholder = document.getElementById('cameraPlaceholder');
-    const startBtn = document.getElementById('startCameraBtn');
-    const captureBtn = document.getElementById('capturePhotoBtn');
-    const zoomControls = document.getElementById('zoomControls');
+  function openNativeCamera() {
+    // Trigger the hidden file input to open native camera
+    const input = document.getElementById('cameraInput');
+    input.click();
+  }
 
-    try {
-      // Request camera with zoom capability
-      const constraints = {
-        video: { 
-          facingMode: 'environment',
-          zoom: { ideal: 1 }
-        },
-        audio: false 
-      };
+  // Handle camera photo capture
+  document.getElementById('cameraInput').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Read file as data URL
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      capturedImage = e.target.result;
       
-      cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+      // Display preview
+      const preview = document.getElementById('capturedImagePreview');
+      const message = document.getElementById('noCameraMessage');
+      preview.src = capturedImage;
+      preview.style.display = 'block';
+      message.style.display = 'none';
       
-      // Get zoom capabilities if available
-      const settings = cameraStream.getVideoTracks()[0].getSettings();
-      const capabilities = cameraStream.getVideoTracks()[0].getCapabilities();
-      if (capabilities.zoom) {
-        maxZoom = capabilities.zoom.max || 4;
-        currentZoom = 1;
-      }
-      
-      video.srcObject = cameraStream;
-      video.style.display = 'block';
-      placeholder.style.display = 'none';
-      startBtn.style.display = 'none';
-      captureBtn.style.display = 'inline-block';
-      zoomControls.style.display = 'flex';
-      
-      video.play();
-    } catch (error) {
-      console.error('Camera error:', error);
-      alert('Unable to access camera. Please check permissions.');
-    }
-  }
+      // Update buttons
+      document.getElementById('openCameraBtn').style.display = 'none';
+      document.getElementById('processImageBtn').style.display = 'inline-block';
+      document.getElementById('retakePhotoBtn').style.display = 'inline-block';
+    };
+    reader.readAsDataURL(file);
+  });
 
-  function zoomIn() {
-    if (currentZoom < maxZoom) {
-      currentZoom = Math.min(currentZoom + 0.5, maxZoom);
-      applyZoom();
-    }
-  }
-
-  function zoomOut() {
-    if (currentZoom > 1) {
-      currentZoom = Math.max(currentZoom - 0.5, 1);
-      applyZoom();
-    }
-  }
-
-  function applyZoom() {
-    const video = document.getElementById('cameraVideo');
-    const zoomDisplay = document.getElementById('zoomLevel');
-    
-    // Visual zoom using CSS transform
-    video.style.transform = `scale(${currentZoom})`;
-    zoomDisplay.innerText = `${currentZoom.toFixed(1)}x`;
-    
-    // Hardware zoom if supported
-    if (cameraStream) {
-      try {
-        const track = cameraStream.getVideoTracks()[0];
-        const capabilities = track.getCapabilities();
-        if (capabilities.zoom) {
-          track.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(() => {
-            // Hardware zoom not supported, CSS zoom will be used
-          });
-        }
-      } catch (e) {
-        console.log('Zoom not supported on this device');
-      }
-    }
-  }
-
-  function stopCamera() {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      cameraStream = null;
-    }
-  }
-
-  function capturePhoto() {
-    const video = document.getElementById('cameraVideo');
-    const canvas = document.getElementById('cameraCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Set canvas size to video size
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Draw video frame to canvas
-    ctx.drawImage(video, 0, 0);
-    
-    // Hide video, show canvas
-    video.style.display = 'none';
-    canvas.style.display = 'block';
-    
-    // Update buttons
-    document.getElementById('capturePhotoBtn').style.display = 'none';
-    document.getElementById('processImageBtn').style.display = 'inline-block';
-    document.getElementById('retakPhotoBtn').style.display = 'inline-block';
+  function retakePhoto() {
+    capturedImage = null;
+    document.getElementById('cameraInput').value = '';
+    openNativeCamera();
   }
 
   async function processImage() {
-    const canvas = document.getElementById('cameraCanvas');
+    if (!capturedImage) {
+      alert('No image captured');
+      return;
+    }
+    
     const processingInd = document.getElementById('processingIndicator');
     processingInd.style.display = 'block';
     
     try {
       if (cameraMode === 'barcode') {
-        await processBarcode(canvas);
+        await processBarcode(capturedImage);
       } else {
-        await processNutritionLabel(canvas);
+        await processNutritionLabel(capturedImage);
       }
     } catch (error) {
       console.error('Error processing image:', error);
@@ -937,10 +857,8 @@
     }
   }
 
-  async function processBarcode(canvas) {
+  async function processBarcode(imageData) {
     try {
-      const imageData = canvas.toDataURL('image/jpeg');
-      
       // Use QuaggaJS to detect barcode
       Quagga.decodeSingle({
         src: imageData,
@@ -976,10 +894,8 @@
     }
   }
 
-  async function processNutritionLabel(canvas) {
+  async function processNutritionLabel(imageData) {
     try {
-      const imageData = canvas.toDataURL('image/jpeg');
-      
       // Use Tesseract.js for OCR
       const { data: { text } } = await Tesseract.recognize(imageData, 'eng');
       
@@ -1322,7 +1238,7 @@
   }
 </script>
 
-<!-- Camera Modal -->
+<!-- Camera Modal - Uses Native Camera App -->
 <div id="cameraModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; padding: 20px; box-sizing: border-box;">
   <div style="max-width: 600px; margin: 0 auto; height: 100%; display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -1330,24 +1246,17 @@
       <button onclick="closeCameraModal()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Close</button>
     </div>
     
-    <div style="flex: 1; display: flex; flex-direction: column; background: #222; border-radius: 8px; overflow: hidden; position: relative;">
-      <video id="cameraVideo" style="width: 100%; height: 100%; object-fit: cover; display: none; transform-origin: center;"></video>
-      <canvas id="cameraCanvas" style="width: 100%; height: 100%; display: none;"></canvas>
-      <div id="cameraPlaceholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999; flex-direction: column; gap: 15px;">
+    <div style="flex: 1; display: flex; flex-direction: column; background: #222; border-radius: 8px; overflow: hidden;">
+      <!-- Preview of captured photo -->
+      <img id="capturedImagePreview" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+      
+      <!-- No photo message -->
+      <div id="noCameraMessage" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999; flex-direction: column; gap: 15px;">
         <div style="font-size: 48px;">📷</div>
         <div style="text-align: center;">
           <div style="font-size: 16px; color: #fff; margin-bottom: 5px;">Ready to capture</div>
-          <div style="font-size: 12px; color: #999;">Click "Start Camera" to begin</div>
+          <div style="font-size: 12px; color: #999;">Click "Open Camera" to use your device's native camera</div>
         </div>
-      </div>
-      
-      <!-- Zoom Controls (visible when camera is active) -->
-      <div id="zoomControls" style="display: none; position: absolute; bottom: 15px; left: 0; right: 0; display: flex; justify-content: center; gap: 15px; align-items: center;">
-        <button onclick="zoomOut()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 18px;">−</button>
-        <div style="background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 4px; color: white; font-weight: bold; min-width: 60px; text-align: center;">
-          <span id="zoomLevel">1x</span>
-        </div>
-        <button onclick="zoomIn()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 18px;">+</button>
       </div>
     </div>
     
@@ -1355,11 +1264,13 @@
       ⏳ Processing image... (this may take a moment)
     </div>
     
+    <!-- File input (hidden) -->
+    <input type="file" id="cameraInput" style="display: none;" accept="image/*" capture="environment">
+    
     <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center;">
-      <button id="startCameraBtn" onclick="startCamera()" style="padding: 12px 20px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">▶️ Start Camera</button>
-      <button id="capturePhotoBtn" onclick="capturePhoto()" style="display: none; padding: 12px 20px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">📸 Capture Photo</button>
+      <button id="openCameraBtn" onclick="openNativeCamera()" style="padding: 12px 20px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">▶️ Open Camera</button>
       <button id="processImageBtn" onclick="processImage()" style="display: none; padding: 12px 20px; background: #f5c400; color: black; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">✓ Process Image</button>
-      <button id="retakPhotoBtn" onclick="startCamera()" style="display: none; padding: 12px 20px; background: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">↻ Retake Photo</button>
+      <button id="retakePhotoBtn" onclick="retakePhoto()" style="display: none; padding: 12px 20px; background: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">↻ Retake Photo</button>
     </div>
   </div>
 </div>
