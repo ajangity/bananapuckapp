@@ -995,103 +995,139 @@ async function fetchData() {
     }
     const data = await res.json();
     console.log('✓ Data fetched successfully:', data);
+    console.log('HR:', data.hr, 'Breathing:', data.breathing, 'Temp:', data.temp);
 
     // Validate critical data exists
     if (data.hr === null || data.breathing === null || data.temp === null) {
-      console.warn('Data missing critical values:', data);
+      console.warn('⚠️ Data missing critical values:', { hr: data.hr, breathing: data.breathing, temp: data.temp });
     }
 
     // Detect current activity based on sensor data
     if (data.hr !== null && data.breathing !== null && data.accel) {
-      currentStatus = detectActivity(data.hr, data.breathing, data.accel.x || 0, data.accel.y || 0, data.accel.z || 0);
-      updateActivityStatus(currentStatus);
-      updateStatusDisplay();
+      try {
+        currentStatus = detectActivity(data.hr, data.breathing, data.accel.x || 0, data.accel.y || 0, data.accel.z || 0);
+        updateActivityStatus(currentStatus);
+        updateStatusDisplay();
+      } catch (e) {
+        console.warn('Activity detection error:', e.message);
+      }
     }
 
     // Use CONFIRMED activity for safe ranges, not instant detection
     const ranges = getSafeRanges(confirmedActivity);
+    console.log('Using activity:', confirmedActivity, 'with ranges:', ranges);
 
     // Update sensors with null safety
-    if (data.hr !== null) updateSensor("hr", data.hr, ranges.hr.min, ranges.hr.max, "bpm");
-    if (data.breathing !== null) updateSensor("breathing", data.breathing, ranges.breathing.min, ranges.breathing.max, "breaths/min");
-    if (data.temp !== null) updateSensor("temp", data.temp, ranges.temp.min, ranges.temp.max, "°F");
-
-
-  if (data.accel) {
-    document.getElementById("accelValue").innerText =
-      `X:${(data.accel.x || 0).toFixed(2)} Y:${(data.accel.y || 0).toFixed(2)} Z:${(data.accel.z || 0).toFixed(2)}`;
-  }
-
-  if (data.gyro) {
-    document.getElementById("gyroValue").innerText =
-      `X:${(data.gyro.x || 0).toFixed(2)} Y:${(data.gyro.y || 0).toFixed(2)} Z:${(data.gyro.z || 0).toFixed(2)}`;
-  }
-
-
-
-  if (data.gps && data.gps.lat !== null && data.gps.lon !== null) {
-
-    document.getElementById("gpsValue").innerText =
-
-      `${data.gps.lat.toFixed(5)}, ${data.gps.lon.toFixed(5)} (±${data.gps.accuracy}m)`;
-
-    if (marker && map) {
-      marker.setLatLng([data.gps.lat, data.gps.lon]);
-      map.setView([data.gps.lat, data.gps.lon], 15);
+    if (data.hr !== null) {
+      try {
+        updateSensor("hr", data.hr, ranges.hr.min, ranges.hr.max, "bpm");
+        console.log('✓ HR sensor updated:', data.hr);
+      } catch (e) {
+        console.error('HR update error:', e.message);
+      }
+    }
+    
+    if (data.breathing !== null) {
+      try {
+        updateSensor("breathing", data.breathing, ranges.breathing.min, ranges.breathing.max, "breaths/min");
+        console.log('✓ Breathing sensor updated:', data.breathing);
+      } catch (e) {
+        console.error('Breathing update error:', e.message);
+      }
+    }
+    
+    if (data.temp !== null) {
+      try {
+        updateSensor("temp", data.temp, ranges.temp.min, ranges.temp.max, "°F");
+        console.log('✓ Temp sensor updated:', data.temp);
+      } catch (e) {
+        console.error('Temp update error:', e.message);
+      }
     }
 
-  }
+    // Accel
+    if (data.accel) {
+      try {
+        const accelEl = document.getElementById("accelValue");
+        if (accelEl) {
+          accelEl.innerText = `X:${(data.accel.x || 0).toFixed(2)} Y:${(data.accel.y || 0).toFixed(2)} Z:${(data.accel.z || 0).toFixed(2)}`;
+          console.log('✓ Accel updated');
+        }
+      } catch (e) {
+        console.error('Accel update error:', e.message);
+      }
+    }
 
+    // Gyro
+    if (data.gyro) {
+      try {
+        const gyroEl = document.getElementById("gyroValue");
+        if (gyroEl) {
+          gyroEl.innerText = `X:${(data.gyro.x || 0).toFixed(2)} Y:${(data.gyro.y || 0).toFixed(2)} Z:${(data.gyro.z || 0).toFixed(2)}`;
+          console.log('✓ Gyro updated');
+        }
+      } catch (e) {
+        console.error('Gyro update error:', e.message);
+      }
+    }
 
+    // GPS
+    if (data.gps && data.gps.lat !== null && data.gps.lon !== null) {
+      try {
+        const gpsEl = document.getElementById("gpsValue");
+        if (gpsEl) {
+          gpsEl.innerText = `${data.gps.lat.toFixed(5)}, ${data.gps.lon.toFixed(5)} (±${data.gps.accuracy}m)`;
+        }
+        if (marker && map) {
+          marker.setLatLng([data.gps.lat, data.gps.lon]);
+          map.setView([data.gps.lat, data.gps.lon], 15);
+          console.log('✓ GPS updated and map moved');
+        }
+      } catch (e) {
+        console.error('GPS update error:', e.message);
+      }
+    }
 
-  const waterCard = document.getElementById("waterCard");
+    // Water
+    try {
+      const waterCard = document.getElementById("waterCard");
+      const waterValue = document.getElementById("waterValue");
 
-  const waterValue = document.getElementById("waterValue");
+      if (data.water_submerged) {
+        waterValue.innerText = "SUBMERGED";
+        waterCard.classList.remove("safe");
+        waterCard.classList.add("danger");
+      } else {
+        waterValue.innerText = "DRY";
+        waterCard.classList.remove("danger");
+        waterCard.classList.add("safe");
+      }
+      console.log('✓ Water status updated');
+    } catch (e) {
+      console.error('Water update error:', e.message);
+    }
 
+    // CO (ppm)
+    try {
+      if (data.co_ppm !== undefined && data.co_ppm !== null) {
+        updateCO(data.co_ppm);
+        console.log('✓ CO updated:', data.co_ppm);
+      } else {
+        const coEl = document.getElementById("coValue");
+        if (coEl) coEl.innerText = "-- ppm";
+        const card = document.getElementById("coCard");
+        if (card) card.classList.remove("safe", "warning", "danger");
+      }
+    } catch (e) {
+      console.error('CO update error:', e.message);
+    }
 
-
-  if (data.water_submerged) {
-
-    waterValue.innerText = "SUBMERGED";
-
-    waterCard.classList.remove("safe");
-
-    waterCard.classList.add("danger");
-
-  } else {
-
-    waterValue.innerText = "DRY";
-
-    waterCard.classList.remove("danger");
-
-    waterCard.classList.add("safe");
-
-  }
-
-
-
-  /* ---------- CO (ppm) ---------- */
-
-  if (data.co_ppm !== undefined && data.co_ppm !== null) {
-
-    updateCO(data.co_ppm);
-
-  } else {
-
-    document.getElementById("coValue").innerText = "-- ppm";
-
-    const card = document.getElementById("coCard");
-
-    if (card) card.classList.remove("safe", "warning", "danger");
-
-  }
-
-
-
-  pruneOldData();
+    pruneOldData();
+    console.log('✓ fetchData completed successfully');
   } catch (error) {
     console.error('❌ Error fetching data:', error.message);
     console.error('Full error:', error);
+    console.error('Stack:', error.stack);
     // Set placeholder values instead of crashing
     const defaultValues = {
       hrValue: '-- bpm',
