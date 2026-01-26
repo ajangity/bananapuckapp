@@ -383,8 +383,20 @@
   
   <!-- Product Lookup Section -->
   <div class="product-lookup" style="background: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 25px; border: 2px solid #f5c400;">
-    <h3 style="margin-top: 0; color: #333; font-size: 18px;">📦 Quick Add: Scan Barcode or Search Product</h3>
-    <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Find packaged foods with nutrition facts from Open Food Facts database</p>
+    <h3 style="margin-top: 0; color: #333; font-size: 18px;">📦 Quick Add: Scan or Search</h3>
+    <p style="color: #666; font-size: 14px; margin-bottom: 15px;">Take a photo of barcode/label, search by name, or enter code manually</p>
+    
+    <!-- Camera Buttons Row -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
+      <button onclick="openCameraForBarcode()" style="padding: 12px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        📷 Scan Barcode
+      </button>
+      <button onclick="openCameraForLabel()" style="padding: 12px; background: #9b59b6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        📸 Scan Nutrition Label
+      </button>
+    </div>
+
+    <div style="text-align: center; color: #999; margin: 15px 0; font-size: 13px;">— OR ENTER MANUALLY —</div>
     
     <div class="form-row">
       <div class="form-group" style="flex: 1;">
@@ -397,12 +409,12 @@
       </div>
     </div>
 
-    <div style="text-align: center; color: #999; margin: 15px 0; font-size: 14px;">— OR —</div>
+    <div style="text-align: center; color: #999; margin: 15px 0; font-size: 13px;">— OR SEARCH —</div>
 
     <div class="form-row">
       <div class="form-group" style="flex: 1;">
         <label>Search by Product Name</label>
-        <input type="text" id="productNameInput" placeholder="e.g., Coca Cola, Kraft Cheddar Cheese" id="productSearch">
+        <input type="text" id="productNameInput" placeholder="e.g., Coca Cola, Kraft Cheddar Cheese">
       </div>
       <div class="form-group" style="flex: 0.3; display: flex; align-items: flex-end;">
         <button onclick="searchByProductName()" style="width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">🔍 Find</button>
@@ -718,6 +730,236 @@
     document.getElementById('productLoadingSpinner').style.display = show ? 'block' : 'none';
   }
 
+  // ==================== CAMERA & OCR FUNCTIONS ====================
+
+  let cameraStream = null;
+  let cameraMode = 'barcode'; // 'barcode' or 'label'
+
+  function openCameraForBarcode() {
+    cameraMode = 'barcode';
+    openCameraModal();
+  }
+
+  function openCameraForLabel() {
+    cameraMode = 'label';
+    openCameraModal();
+  }
+
+  function openCameraModal() {
+    document.getElementById('cameraModal').style.display = 'block';
+  }
+
+  function closeCameraModal() {
+    document.getElementById('cameraModal').style.display = 'none';
+    stopCamera();
+  }
+
+  async function startCamera() {
+    const video = document.getElementById('cameraVideo');
+    const placeholder = document.getElementById('cameraPlaceholder');
+    const startBtn = document.getElementById('startCameraBtn');
+    const captureBtn = document.getElementById('capturePhotoBtn');
+
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' },
+        audio: false 
+      });
+      
+      video.srcObject = cameraStream;
+      video.style.display = 'block';
+      placeholder.style.display = 'none';
+      startBtn.style.display = 'none';
+      captureBtn.style.display = 'inline-block';
+      
+      video.play();
+    } catch (error) {
+      console.error('Camera error:', error);
+      alert('Unable to access camera. Please check permissions.');
+    }
+  }
+
+  function stopCamera() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream = null;
+    }
+  }
+
+  function capturePhoto() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size to video size
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    ctx.drawImage(video, 0, 0);
+    
+    // Hide video, show canvas
+    video.style.display = 'none';
+    canvas.style.display = 'block';
+    
+    // Update buttons
+    document.getElementById('capturePhotoBtn').style.display = 'none';
+    document.getElementById('processImageBtn').style.display = 'inline-block';
+    document.getElementById('retakPhotoBtn').style.display = 'inline-block';
+  }
+
+  async function processImage() {
+    const canvas = document.getElementById('cameraCanvas');
+    const processingInd = document.getElementById('processingIndicator');
+    processingInd.style.display = 'block';
+    
+    try {
+      if (cameraMode === 'barcode') {
+        await processBarcode(canvas);
+      } else {
+        await processNutritionLabel(canvas);
+      }
+    } catch (error) {
+      console.error('Error processing image:', error);
+      alert('Error processing image. Please try again.');
+    } finally {
+      processingInd.style.display = 'none';
+    }
+  }
+
+  async function processBarcode(canvas) {
+    try {
+      const imageData = canvas.toDataURL('image/jpeg');
+      
+      // Use QuaggaJS to detect barcode
+      Quagga.decodeSingle({
+        src: imageData,
+        numOfWorkers: 1,
+        inputStream: {
+          type: 'ImageStream',
+          sequence: false
+        },
+        decoder: {
+          readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'upc_reader']
+        }
+      }, async function(result) {
+        if (result && result.codeResult && result.codeResult.code) {
+          const barcode = result.codeResult.code;
+          console.log('Barcode detected:', barcode);
+          
+          // Auto-search the barcode
+          document.getElementById('barcodeInput').value = barcode;
+          closeCameraModal();
+          
+          // Give brief delay for UI update
+          setTimeout(() => {
+            showSearchSpinner(true);
+            searchByBarcode();
+          }, 300);
+        } else {
+          alert('No barcode detected. Please try again or enter manually.');
+        }
+      });
+    } catch (error) {
+      console.error('Barcode processing error:', error);
+      alert('Could not detect barcode. Please try again.');
+    }
+  }
+
+  async function processNutritionLabel(canvas) {
+    try {
+      const imageData = canvas.toDataURL('image/jpeg');
+      
+      // Use Tesseract.js for OCR
+      const { data: { text } } = await Tesseract.recognize(imageData, 'eng');
+      
+      console.log('OCR Text:', text);
+      
+      // Extract nutrition facts from OCR text
+      const nutritionData = extractNutritionFromText(text);
+      
+      if (nutritionData.calories || nutritionData.protein || nutritionData.carbs || nutritionData.fat) {
+        // Auto-fill the form
+        if (nutritionData.productName) {
+          document.getElementById('foodItems').value = nutritionData.productName;
+        }
+        if (nutritionData.calories > 0) {
+          document.getElementById('calories').value = nutritionData.calories;
+        }
+        if (nutritionData.servingSize) {
+          document.getElementById('foodItems').value += ` (${nutritionData.servingSize}g serving)`;
+        }
+        
+        // Estimate healthiness
+        let healthiness = 'moderate';
+        if (nutritionData.calories < 150) healthiness = 'healthy';
+        else if (nutritionData.calories > 300) healthiness = 'unhealthy';
+        document.getElementById('mealHealthiness').value = healthiness;
+        
+        document.getElementById('mealType').value = 'snack';
+        
+        closeCameraModal();
+        document.querySelector('.habit-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert('Could not extract nutrition information. Please try a clearer photo or enter manually.');
+      }
+    } catch (error) {
+      console.error('Label OCR error:', error);
+      alert('Error reading nutrition label. Please try again.');
+    }
+  }
+
+  function extractNutritionFromText(text) {
+    const result = {
+      productName: '',
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      servingSize: ''
+    };
+
+    // Convert to lowercase for easier matching
+    const lowerText = text.toLowerCase();
+    
+    // Extract product name (usually at top, first 2-3 lines)
+    const lines = text.split('\n');
+    result.productName = lines[0] || '';
+
+    // Extract serving size
+    const servingSizeMatch = text.match(/serving\s+size[:\s]+(\d+(?:\.\d+)?)\s*(?:g|oz|ml)/i);
+    if (servingSizeMatch) {
+      result.servingSize = servingSizeMatch[1];
+    }
+
+    // Extract calories - look for "Calories" or "Energy"
+    const caloriesMatch = text.match(/(?:calories?|energy)[:\s]+(\d+(?:\.\d+)?)/i);
+    if (caloriesMatch) {
+      result.calories = Math.round(parseFloat(caloriesMatch[1]));
+    }
+
+    // Extract protein
+    const proteinMatch = text.match(/protein[:\s]+(\d+(?:\.\d+)?)\s*g/i);
+    if (proteinMatch) {
+      result.protein = parseFloat(proteinMatch[1]);
+    }
+
+    // Extract carbs (carbohydrates)
+    const carbsMatch = text.match(/(?:carbohydrates?|carbs)[:\s]+(\d+(?:\.\d+)?)\s*g/i);
+    if (carbsMatch) {
+      result.carbs = parseFloat(carbsMatch[1]);
+    }
+
+    // Extract fat
+    const fatMatch = text.match(/(?:total\s+)?fat[:\s]+(\d+(?:\.\d+)?)\s*g/i);
+    if (fatMatch) {
+      result.fat = parseFloat(fatMatch[1]);
+    }
+
+    console.log('Extracted nutrition data:', result);
+    return result;
+  }
+
   function logMeal() {
     const mealType = document.getElementById('mealType').value;
     const mealTime = document.getElementById('mealTime').value;
@@ -969,6 +1211,43 @@
     return { dates, calories };
   }
 </script>
+
+<!-- Camera Modal -->
+<div id="cameraModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; padding: 20px; box-sizing: border-box;">
+  <div style="max-width: 600px; margin: 0 auto; height: 100%; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <h2 style="color: white; margin: 0;">📷 Capture Image</h2>
+      <button onclick="closeCameraModal()" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Close</button>
+    </div>
+    
+    <div style="flex: 1; display: flex; flex-direction: column; background: #222; border-radius: 8px; overflow: hidden;">
+      <video id="cameraVideo" style="width: 100%; height: 100%; object-fit: cover; display: none;"></video>
+      <canvas id="cameraCanvas" style="width: 100%; height: 100%; display: none;"></canvas>
+      <div id="cameraPlaceholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999; flex-direction: column; gap: 15px;">
+        <div style="font-size: 48px;">📷</div>
+        <div style="text-align: center;">
+          <div style="font-size: 16px; color: #fff; margin-bottom: 5px;">Ready to capture</div>
+          <div style="font-size: 12px; color: #999;">Click "Start Camera" to begin</div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="processingIndicator" style="display: none; text-align: center; padding: 15px; color: #f5c400; font-weight: bold;">
+      ⏳ Processing image... (this may take a moment)
+    </div>
+    
+    <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center;">
+      <button id="startCameraBtn" onclick="startCamera()" style="padding: 12px 20px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">▶️ Start Camera</button>
+      <button id="capturePhotoBtn" onclick="capturePhoto()" style="display: none; padding: 12px 20px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">📸 Capture Photo</button>
+      <button id="processImageBtn" onclick="processImage()" style="display: none; padding: 12px 20px; background: #f5c400; color: black; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">✓ Process Image</button>
+      <button id="retakPhotoBtn" onclick="startCamera()" style="display: none; padding: 12px 20px; background: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">↻ Retake Photo</button>
+    </div>
+  </div>
+</div>
+
+<!-- External Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
 
 </body>
 </html>

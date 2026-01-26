@@ -929,8 +929,6 @@ function deleteSafePath(index) {
 
 }
 
-
-
 function renderSavedPathsList() {
 
   const container = document.getElementById("savedPathsList");
