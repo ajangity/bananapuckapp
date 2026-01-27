@@ -1008,8 +1008,16 @@ async function fetchData() {
     // Detect current activity based on sensor data
     if (data.hr !== null && data.breathing !== null && data.accel) {
       try {
-        currentStatus = detectActivity(data.hr, data.breathing, data.accel.x || 0, data.accel.y || 0, data.accel.z || 0);
-        updateActivityStatus(currentStatus);
+        // First, check if server sent activity data directly
+        if (data.activity && typeof data.activity === 'string') {
+          // Use server's activity detection
+          confirmedActivity = data.activity;
+          console.log('✓ Using activity from server:', data.activity);
+        } else {
+          // Fall back to local detection
+          currentStatus = detectActivity(data.hr, data.breathing, data.accel.x || 0, data.accel.y || 0, data.accel.z || 0);
+          updateActivityStatus(currentStatus);
+        }
         updateStatusDisplay();
       } catch (e) {
         console.warn('Activity detection error:', e.message);
