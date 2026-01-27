@@ -1075,14 +1075,29 @@
               if (data.status === 1 && data.product) {
                 const product = data.product;
                 const productName = product.product_name || 'Unknown Product';
-                const calories = Math.round(product.nutriments?.['energy-kcal_100g'] || 0);
                 const brand = product.brands || '';
                 
-                console.log('Product found:', productName, 'Calories:', calories);
+                // Extract all nutrient data per 100g from Open Food Facts
+                const nutrients = product.nutriments || {};
+                const nutritionData = {
+                  productName: productName,
+                  brand: brand,
+                  barcode: barcode,
+                  calories: Math.round(nutrients['energy-kcal_100g'] || 0),
+                  protein: Math.round((nutrients.proteins_100g || 0) * 10) / 10,
+                  carbs: Math.round((nutrients.carbohydrates_100g || 0) * 10) / 10,
+                  sugar: Math.round((nutrients.sugars_100g || 0) * 10) / 10,
+                  fats: Math.round((nutrients.fat_100g || 0) * 10) / 10,
+                  fiber: Math.round((nutrients['fiber_100g'] || 0) * 10) / 10,
+                  iron: Math.round((nutrients['iron_100g'] || 0) * 100) / 100,
+                  calcium: Math.round((nutrients['calcium_100g'] || 0) * 100) / 100
+                };
+                
+                console.log('Extracted nutrition data:', nutritionData);
                 
                 closeCameraModal();
-                // Auto-fill the form and log
-                autoFillAndLogFromBarcode(productName, calories, brand, barcode);
+                // Auto-fill the form and log with all nutrition data
+                autoFillAndLogFromBarcode(nutritionData);
               } else {
                 closeCameraModal();
                 alert(`No product found for barcode: ${barcode}\nPlease enter manually.`);
@@ -1163,19 +1178,28 @@
     });
   }
 
-  function autoFillAndLogFromBarcode(productName, calories, brand, barcode) {
+  function autoFillAndLogFromBarcode(nutritionData) {
     // Auto-fill the form with barcode product data
-    document.getElementById('foodItems').value = productName;
-    document.getElementById('calories').value = calories > 0 ? calories : '';
+    document.getElementById('foodItems').value = nutritionData.productName;
+    document.getElementById('calories').value = nutritionData.calories > 0 ? nutritionData.calories : '';
+    document.getElementById('protein').value = nutritionData.protein > 0 ? nutritionData.protein : '';
+    document.getElementById('carbs').value = nutritionData.carbs > 0 ? nutritionData.carbs : '';
+    document.getElementById('sugar').value = nutritionData.sugar > 0 ? nutritionData.sugar : '';
+    document.getElementById('fats').value = nutritionData.fats > 0 ? nutritionData.fats : '';
+    document.getElementById('fiber').value = nutritionData.fiber > 0 ? nutritionData.fiber : '';
+    document.getElementById('iron').value = nutritionData.iron > 0 ? nutritionData.iron : '';
+    document.getElementById('calcium').value = nutritionData.calcium > 0 ? nutritionData.calcium : '';
     
-    // Set healthiness
+    // Set healthiness based on nutrients
     let healthiness = 'moderate';
-    if (calories < 150) healthiness = 'healthy';
-    else if (calories > 300) healthiness = 'unhealthy';
+    if (nutritionData.calories < 150) healthiness = 'healthy';
+    else if (nutritionData.calories > 300) healthiness = 'unhealthy';
     document.getElementById('mealHealthiness').value = healthiness;
     
     // Set meal type
     document.getElementById('mealType').value = 'snack';
+    
+    console.log('Form auto-filled with all macros from barcode data');
     
     // Auto-log the meal
     setTimeout(() => {
