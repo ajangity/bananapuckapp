@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BananaPuck Pill Verification</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- PWA Support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="BananaPuck">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #f5c400;
+      color: white;
+      padding: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .back-btn {
+      background: white;
+      color: #f5c400;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .back-btn:hover {
+      background: #f0f0f0;
+    }
+
+    main {
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .timer {
+      text-align: center;
+      font-size: 48px;
+      font-weight: bold;
+      color: #f5c400;
+      margin-bottom: 20px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .timer.warning {
+      color: #e74c3c;
+    }
+
+    .timer.hidden {
+      display: none;
+    }
+
+    .camera-container {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      position: relative;
+      border-left: 5px solid #f5c400;
+    }
+
+    #video {
+      width: 100%;
+      display: block;
+      background: #000;
+      min-height: 300px;
+    }
+
+    .camera-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      height: 60%;
+      border: 3px dashed rgba(255,255,255,0.5);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+
+    .overlay-text {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .status-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      border-left: 5px solid #27ae60;
+    }
+
+    .status-panel h3 {
+      margin: 0 0 15px 0;
+      color: #333;
+      font-size: 18px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px;
+      margin-bottom: 10px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    .status-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .status-label {
+      font-weight: 600;
+      color: #555;
+    }
+
+    .status-value {
+      font-weight: 500;
+    }
+
+    .status-value.positive {
+      color: #27ae60;
+    }
+
+    .status-value.negative {
+      color: #e74c3c;
+    }
+
+    .status-value.neutral {
+      color: #7f8c8d;
+    }
+
+    .medication-text {
+      background: #f0f9ff;
+      border: 2px solid #3498db;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: monospace;
+      font-size: 14px;
+      color: #2980b9;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+
+    .medication-text.hidden {
+      display: none;
+    }
+
+    .controls {
+      display: flex;
+      gap: 15px;
+    }
+
+    .controls button {
+      flex: 1;
+      padding: 18px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    #startBtn {
+      background: #27ae60;
+      color: white;
+    }
+
+    #startBtn:hover {
+      background: #219a52;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+
+    #startBtn:disabled {
+      background: #95a5a6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #stopBtn {
+      background: #e74c3c;
+      color: white;
+      display: none;
+    }
+
+    #stopBtn:hover {
+      background: #c0392b;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+
+    .instructions {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+      margin-top: 20px;
+      border-left: 5px solid #9b59b6;
+    }
+
+    .instructions h3 {
+      margin: 0 0 15px 0;
+      color: #333;
+    }
+
+    .instructions ol {
+      margin: 0;
+      padding-left: 20px;
+      color: #666;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        font-size: 22px;
+        padding: 15px;
+      }
+
+      main {
+        padding: 15px;
+      }
+
+      .status-item {
+        font-size: 14px;
+        padding: 12px;
+      }
+
+      .controls button {
+        padding: 15px;
+        font-size: 16px;
+      }
+
+      .timer {
+        font-size: 36px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <span>Pill Verification</span>
+  <button class="back-btn" onclick="window.location.href='index.html'">Back</button>
+</header>
+
+<main>
+  <div class="timer hidden" id="timer">30</div>
+
+  <div class="camera-container">
+    <video id="video" autoplay playsinline></video>
+    <div class="camera-overlay"></div>
+    <div class="overlay-text" id="overlayText">Position bottle in frame</div>
+  </div>
+
+  <div class="status-panel">
+    <h3>Detection Status</h3>
+    <div class="status-item">
+      <span class="status-label">Person Detected:</span>
+      <span class="status-value neutral" id="personStatus">Waiting...</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Medication Visible:</span>
+      <span class="status-value neutral" id="medicationStatus">Waiting...</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Pill Taken:</span>
+      <span class="status-value neutral" id="pillStatus">Waiting...</span>
+    </div>
+    <div class="medication-text hidden" id="medicationText"></div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn">Start Monitoring (30s)</button>
+    <button id="stopBtn">Stop</button>
+  </div>
+
+  <div class="instructions">
+    <h3>How to Use</h3>
+    <ol>
+      <li>Allow camera access when prompted</li>
+      <li>Hold your medication bottle in front of the camera</li>
+      <li>Click "Start Monitoring" to begin the 30-second verification</li>
+      <li>Take your pill while the camera is monitoring</li>
+      <li>The system will detect the hand-to-mouth gesture</li>
+    </ol>
+  </div>
+</main>
+
+<script>
+  // Configuration
+  const API_URL = 'https://pill-verification.onrender.com';
+  const MONITORING_DURATION = 30000; // 30 seconds
+  const FRAME_INTERVAL = 500; // Process frame every 500ms
+
+  // Elements
+  const video = document.getElementById('video');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const timer = document.getElementById('timer');
+  const overlayText = document.getElementById('overlayText');
+  const personStatus = document.getElementById('personStatus');
+  const medicationStatus = document.getElementById('medicationStatus');
+  const pillStatus = document.getElementById('pillStatus');
+  const medicationText = document.getElementById('medicationText');
+
+  // State
+  let monitoring = false;
+  let monitoringInterval;
+  let monitoringTimeout;
+  let timerInterval;
+  let stream;
+  let timeRemaining = 30;
+
+  // Start camera
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+      video.srcObject = stream;
+      overlayText.textContent = 'Camera ready! Click "Start Monitoring"';
+    } catch (err) {
+      alert('Camera access denied. Please allow camera access and refresh.');
+      console.error('Camera error:', err);
+    }
+  }
+
+  // Capture and process frame
+  async function processFrame() {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    // Convert to blob
+    canvas.toBlob(async (blob) => {
+      const formData = new FormData();
+      formData.append('file', blob, 'frame.jpg');
+
+      try {
+        const response = await fetch(`${API_URL}/process_frames`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        updateUI(data);
+      } catch (err) {
+        console.error('Processing error:', err);
+        overlayText.textContent = 'Error connecting to server';
+      }
+    }, 'image/jpeg', 0.8);
+  }
+
+  // Update UI with results
+  function updateUI(data) {
+    // Person detected
+    if (data.pose.person_detected) {
+      personStatus.textContent = 'Yes';
+      personStatus.className = 'status-value positive';
+    } else {
+      personStatus.textContent = 'No';
+      personStatus.className = 'status-value negative';
+    }
+
+    // Medication visible
+    if (data.ocr.medication_indicators) {
+      medicationStatus.textContent = 'Detected';
+      medicationStatus.className = 'status-value positive';
+      medicationText.textContent = data.ocr.full_text || 'Text detected';
+      medicationText.classList.remove('hidden');
+    } else if (data.ocr.text_detected) {
+      medicationStatus.textContent = 'Text found (not medication)';
+      medicationStatus.className = 'status-value neutral';
+      medicationText.textContent = data.ocr.full_text || 'Unknown text';
+      medicationText.classList.remove('hidden');
+    } else {
+      medicationStatus.textContent = 'Not visible';
+      medicationStatus.className = 'status-value negative';
+      medicationText.classList.add('hidden');
+    }
+
+    // Pill taken
+    if (data.pose.hand_to_mouth) {
+      pillStatus.textContent = `Yes (${Math.round(data.pose.confidence * 100)}% confident)`;
+      pillStatus.className = 'status-value positive';
+      overlayText.textContent = 'Pill-taking gesture detected!';
+    } else if (data.pose.person_detected) {
+      pillStatus.textContent = 'Monitoring...';
+      pillStatus.className = 'status-value neutral';
+      overlayText.textContent = 'Raise hand to mouth to take pill';
+    } else {
+      pillStatus.textContent = 'No';
+      pillStatus.className = 'status-value negative';
+      overlayText.textContent = 'Position yourself in frame';
+    }
+  }
+
+  // Start monitoring
+  function startMonitoring() {
+    monitoring = true;
+    timeRemaining = 30;
+
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'block';
+    timer.classList.remove('hidden');
+    timer.textContent = '30';
+    overlayText.textContent = 'Monitoring started...';
+
+    // Process frames every 500ms
+    monitoringInterval = setInterval(() => {
+      if (monitoring) {
+        processFrame();
+      }
+    }, FRAME_INTERVAL);
+
+    // Countdown timer
+    timerInterval = setInterval(() => {
+      timeRemaining--;
+      timer.textContent = timeRemaining;
+
+      if (timeRemaining <= 10) {
+        timer.classList.add('warning');
+      }
+
+      if (timeRemaining <= 0) {
+        clearInterval(timerInterval);
+      }
+    }, 1000);
+
+    // Stop after 30 seconds
+    monitoringTimeout = setTimeout(() => {
+      stopMonitoring();
+      alert('Monitoring complete! Check the results above.');
+    }, MONITORING_DURATION);
+  }
+
+  // Stop monitoring
+  function stopMonitoring() {
+    monitoring = false;
+    clearInterval(monitoringInterval);
+    clearInterval(timerInterval);
+    clearTimeout(monitoringTimeout);
+
+    startBtn.style.display = 'block';
+    stopBtn.style.display = 'none';
+    timer.classList.add('hidden');
+    timer.classList.remove('warning');
+    overlayText.textContent = 'Monitoring stopped';
+  }
+
+  // Event listeners
+  startBtn.addEventListener('click', startMonitoring);
+  stopBtn.addEventListener('click', stopMonitoring);
+
+  // Initialize camera on load
+  startCamera();
+</script>
+
+</body>
+</html>
